@@ -1,0 +1,12 @@
+# SY CSC CENTRE - pinned for Python 3.8 (Windows 7 / 8 / 10) and MySQL
+# Install with:  pip install -r requirements.txt
+Flask==2.0.3
+Werkzeug==2.0.3
+Jinja2==3.0.3
+MarkupSafe==2.0.1
+itsdangerous==2.0.1
+click==8.0.4
+PyMySQL==1.0.2
+Pillow==9.0.1
+waitress==2.1.2
+pytest==7.1.3
