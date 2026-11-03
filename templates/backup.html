@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('backup.title') }}{% endblock %}
+{% block page_title %}{{ _('backup.title') }}{% endblock %}
+{% block content %}
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('backup.download') }}</h3></div>
+    <div class="card-body">
+      <p class="muted">A single JSON file with every business table and metadata.
+        Keep a copy on a pen drive every day.</p>
+      <a class="btn btn-primary" href="{{ url_for('backup.download') }}">{{ m.icon('download') }} {{ _('backup.download') }}</a>
+      <div class="divider"></div>
+      <p class="small muted">Current row counts:</p>
+      <div class="table-wrap" style="max-height:260px;overflow:auto">
+        <table class="data compact">
+          <thead><tr><th>Table</th><th class="num">Rows</th></tr></thead>
+          <tbody>
+          {% for table in tables %}
+            <tr><td class="mono">{{ table }}</td><td class="num">{{ counts[table] }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('backup.restore') }}</h3></div>
+    <div class="card-body">
+      <div class="notice warn">Restoring <strong>replaces all current data</strong>.
+        A safety backup is created automatically before anything is changed.</div>
+      <form method="post" action="{{ url_for('backup.restore') }}"
+            enctype="multipart/form-data" data-loading
+            data-confirm="Restore will replace all current data. Continue?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('backup.upload_json') }}</label>
+          <input type="file" name="backup_file" accept=".json,application/json" required></div>
+        <div class="checkline" style="padding-top:.6rem">
+          <input type="checkbox" id="restoreConfirm" name="confirm" value="1" required>
+          <label for="restoreConfirm">I understand that current data will be replaced</label>
+        </div>
+        <button class="btn btn-navy" type="submit" style="margin-top:.7rem">{{ _('backup.restore') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>{{ _('backup.reset') }}</h3></div>
+  <div class="card-body">
+    <div class="notice danger">
+      <strong>{{ _('backup.warning') }}</strong>
+      This clears customers, applications, payments, ledger entries, messages,
+      attendance, salary, leave and audit logs. Login accounts, services and
+      settings are kept. A safety backup is written first.
+    </div>
+    <form method="post" action="{{ url_for('backup.reset') }}" data-loading
+          data-confirm="This deletes all business data. Are you sure?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid two">
+        <div class="field"><label>{{ _('backup.password_required') }}</label>
+          <input type="password" name="password" required autocomplete="current-password"></div>
+        <div class="field"><label>{{ _('backup.confirm_phrase') }}</label>
+          <input type="text" name="confirm_phrase" placeholder="RESET-SYCSC" required></div>
+      </div>
+      <button class="btn btn-danger" type="submit" style="margin-top:.8rem">{{ _('backup.reset') }}</button>
+    </form>
+    <div class="divider"></div>
+    <p class="small muted"><strong>Uploaded files:</strong> photos, signatures and
+      documents live in the folder <span class="mono">{{ upload_folder }}</span>.
+      The JSON backup does not contain them &mdash; copy that folder to your pen drive
+      together with the JSON file.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Backup / Restore history</h3></div>
+  <div class="table-wrap">
+    <table class="data compact">
+      <thead><tr><th>{{ _('common.date') }}</th><th>Action</th><th>File</th>
+        <th class="num">Records</th><th>{{ _('common.status') }}</th><th>Message</th></tr></thead>
+      <tbody>
+      {% for log in logs %}
+        <tr><td>{{ log.created_at|datetime_fmt }}</td><td>{{ log.action }}</td>
+          <td class="mono small">{{ log.file_name }}</td><td class="num">{{ log.record_count }}</td>
+          <td><span class="badge {{ 'Completed' if log.status == 'success' else 'Rejected' }}">{{ log.status }}</span></td>
+          <td class="small">{{ log.message }}</td></tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

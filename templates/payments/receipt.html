@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ _('payment.receipt') }} {{ payment.payment_code }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body{background:#eef3f9;padding:1.2rem}
+    .no-print{max-width:760px;margin:0 auto 1rem;display:flex;gap:.5rem;justify-content:flex-end}
+    @media print{body{background:#fff;padding:0}.receipt{border:0;box-shadow:none;max-width:none}}
+  </style>
+</head>
+<body>
+<div class="no-print">
+  <button class="btn btn-primary" type="button" onclick="window.print()">{{ _('common.print') }}</button>
+  <a class="btn btn-outline" href="{{ url_for('payments.index') }}">{{ _('common.back') }}</a>
+  <a class="btn btn-outline" href="{{ url_for('applications.detail', application_id=payment.application_id) }}">{{ _('app.id') }}</a>
+</div>
+
+<div class="receipt">
+  <div class="receipt-head">
+    <div>
+      <h2>{{ settings.get('csc_name') or app_name }}</h2>
+      <div class="small muted">
+        {{ settings.get('csc_address') or '' }}
+        {% if settings.get('csc_phone') %}<br>{{ _('common.mobile') }}: {{ settings.get('csc_phone') }}{% endif %}
+        {% if settings.get('csc_email') %}<br>{{ settings.get('csc_email') }}{% endif %}
+      </div>
+    </div>
+    <div class="right">
+      <div class="badge info">{{ _('payment.receipt') }}</div>
+      <div class="mono small" style="margin-top:.4rem">{{ payment.payment_code }}</div>
+      <div class="small muted">{{ payment.payment_date|datetime_fmt }}</div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th style="width:34%">{{ _('app.id') }}</th><td class="mono">{{ payment.app_code }}</td></tr>
+    <tr><th>{{ _('customer.code') }}</th><td class="mono">{{ payment.customer_code }}</td></tr>
+    <tr><th>{{ _('payment.received_from') }}</th>
+      <td><strong>{{ payment.first_name }} {{ payment.surname }}</strong><br>
+        <span class="small muted">{{ payment.mobile|mobile_fmt }} &middot;
+        {{ payment.village }}, {{ payment.taluka }}, {{ payment.district }}</span></td></tr>
+    <tr><th>{{ _('app.service') }}</th>
+      <td>{{ payment.service_name }}{% if payment.sub_service_name %} &middot; {{ payment.sub_service_name }}{% endif %}</td></tr>
+    <tr><th>{{ _('app.apply_date') }}</th><td>{{ payment.apply_date|date_fmt }}</td></tr>
+  </table>
+
+  <div style="height:.8rem"></div>
+
+  <table>
+    <thead><tr><th>Description</th><th class="num right">{{ _('common.amount') }}</th></tr></thead>
+    <tbody>
+      <tr><td>{{ _('app.charge') }}</td><td class="num right">{{ currency }} {{ payment.charge|money }}</td></tr>
+      <tr><td>{{ _('app.csc_charge') }}</td><td class="num right">{{ currency }} {{ payment.csc_charge|money }}</td></tr>
+      <tr><td>{{ _('app.govt_charge') }}</td><td class="num right">{{ currency }} {{ payment.govt_charge|money }}</td></tr>
+      <tr><td class="tot">{{ _('common.total') }}</td><td class="num right tot">{{ currency }} {{ payment.total|money }}</td></tr>
+      <tr><td><strong>{{ _('common.paid') }} ({{ _('common.payment_mode') }}: {{ payment.payment_mode }})</strong></td>
+        <td class="num right"><strong>{{ currency }} {{ payment.amount|money }}</strong></td></tr>
+      <tr><td>{{ _('common.pending') }}</td><td class="num right">{{ currency }} {{ payment.amount_pending|money }}</td></tr>
+      <tr><td colspan="2" class="small muted">
+        Of this payment &mdash; CSC: {{ currency }} {{ payment.csc_amount|money }},
+        Government: {{ currency }} {{ payment.govt_amount|money }}
+        {% if payment.reference_no %}&middot; Ref: {{ payment.reference_no }}{% endif %}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sign-row">
+    <div class="box">
+      {% if payment.signature_path %}
+      <img src="{{ url_for('uploaded_file', filename=payment.signature_path) }}" alt="signature">
+      {% else %}&nbsp;{% endif %}
+      {{ _('customer.signature') }}
+    </div>
+    <div class="box">
+      {% if settings.get('csc_signature') %}
+      <img src="{{ url_for('uploaded_file', filename=settings.get('csc_signature')) }}" alt="signature">
+      {% else %}&nbsp;{% endif %}
+      {{ _('payment.csc_signature') }}
+    </div>
+  </div>
+
+  <p class="center small muted" style="margin-top:1.4rem">
+    {{ settings.get('receipt_footer') or 'Thank you' }}<br>
+    Received by: {{ payment.created_by_name or '-' }}
+  </p>
+</div>
+</body>
+</html>

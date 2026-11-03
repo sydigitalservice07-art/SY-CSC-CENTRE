@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('dashboard.title') }}{% endblock %}
+{% block page_title %}{{ _('dashboard.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('dashboard.welcome') }}, {{ user.name }}</h1>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="{{ url_for('applications.create') }}">{{ m.icon('plus') }} {{ _('app.add') }}</a>
+    <a class="btn btn-outline" href="{{ url_for('customers.create') }}">{{ m.icon('users') }} {{ _('customer.add') }}</a>
+    <a class="btn btn-outline" href="{{ url_for('payments.index') }}">{{ m.icon('money') }} {{ _('payment.title') }}</a>
+  </div>
+</div>
+
+<div class="grid cols-4">
+  <div class="stat">
+    <div class="label">{{ _('dashboard.total_customers') }}</div>
+    <div class="value">{{ total_customers }}</div>
+    <div class="hint">{{ _('dashboard.customers_today') }}: {{ customers_today }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">{{ _('dashboard.total_operators') }}</div>
+    <div class="value">{{ total_operators }}</div>
+    <div class="hint">{{ _('dashboard.apps_today') }}: {{ apps_today }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">{{ _('dashboard.today_income') }}</div>
+    <div class="value teal">{{ currency }} {{ today_income|money }}</div>
+    <div class="hint">{{ _('payment.title') }} &mdash; CSC {{ _('app.csc_charge') }} only</div>
+  </div>
+  <div class="stat alt">
+    <div class="label">{{ _('dashboard.pending_apps') }}</div>
+    <div class="value">{{ pending_apps }}</div>
+    <div class="hint">{{ _('common.pending') }}: {{ currency }} {{ total_pending_amount|money }}</div>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head">
+      <h3>{{ _('dashboard.recent_customers') }}</h3><span class="spacer"></span>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('customers.index') }}">{{ _('common.view') }}</a>
+    </div>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>{{ _('customer.code') }}</th><th>{{ _('common.name') }}</th>
+          <th>{{ _('common.mobile') }}</th><th>{{ _('customer.village') }}</th><th></th></tr></thead>
+        <tbody>
+        {% for c in recent_customers %}
+          <tr>
+            <td class="mono">{{ c.customer_code }}</td>
+            <td>{{ c.first_name }} {{ c.surname }}</td>
+            <td class="nowrap">{{ c.mobile|mobile_fmt }}</td>
+            <td>{{ c.village }}</td>
+            <td class="right"><a class="btn btn-sm btn-outline"
+              href="{{ url_for('customers.detail', customer_id=c.id) }}">{{ _('common.view') }}</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="empty">{{ _('common.no_records') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h3>{{ _('dashboard.recent_apps') }}</h3><span class="spacer"></span>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('applications.index') }}">{{ _('common.view') }}</a>
+    </div>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>{{ _('app.id') }}</th><th>{{ _('app.customer') }}</th>
+          <th>{{ _('app.service') }}</th><th>{{ _('common.status') }}</th>
+          <th class="num">{{ _('common.total') }}</th></tr></thead>
+        <tbody>
+        {% for a in recent_apps %}
+          <tr>
+            <td class="mono"><a href="{{ url_for('applications.detail', application_id=a.id) }}">{{ a.app_code }}</a></td>
+            <td>{{ a.first_name }} {{ a.surname }}</td>
+            <td>{{ a.service_name }}</td>
+            <td>{{ m.status_badge(a.status) }}</td>
+            <td class="num">{{ a.total|money }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="empty">{{ _('common.no_records') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols-3" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('nav.services') }}</h3></div>
+    <div class="card-body">
+      <div class="kv">
+        <dt>{{ _('dashboard.active_services') }}</dt><dd>{{ active_services }}</dd>
+        <dt>{{ _('dashboard.inactive_services') }}</dt><dd>{{ inactive_services }}</dd>
+        <dt>{{ _('dashboard.unread') }}</dt><dd>{{ unread }}</dd>
+      </div>
+      <div class="divider"></div>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('services.index') }}">{{ _('service.title') }}</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.recent_messages') }}</h3><span class="spacer"></span>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('messages.compose') }}">{{ _('msg.compose') }}</a></div>
+    <div class="card-body tight">
+      {% for msg in recent_messages %}
+        <div style="padding:.45rem .2rem;border-bottom:1px solid var(--border)">
+          <a href="{{ url_for('messages.view', message_id=msg.id) }}">{{ msg.subject }}</a>
+          {% if not msg.read_at %}<span class="badge unread">{{ _('msg.unread') }}</span>{% endif %}
+          <div class="small muted">{{ msg.sender_name }} &middot; {{ msg.created_at|datetime_fmt }}</div>
+        </div>
+      {% else %}
+        <div class="empty">{{ _('msg.no_messages') }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.recent_activity') }}</h3></div>
+    <div class="card-body tight">
+      {% for act in activities %}
+        <div style="padding:.4rem .2rem;border-bottom:1px solid var(--border)">
+          <strong class="small">{{ act.action }}</strong>
+          <div class="small muted">{{ act.details|truncate(70) }}</div>
+          <div class="small muted">{{ act.username or '-' }} &middot; {{ act.created_at|datetime_fmt }}</div>
+        </div>
+      {% else %}
+        <div class="empty">{{ _('common.no_records') }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

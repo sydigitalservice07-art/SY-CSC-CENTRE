@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body center" style="padding:2.4rem 1rem">
+    <h1 style="font-size:3rem;color:var(--navy-800);margin:0">{{ code }}</h1>
+    <h2>{{ title }}</h2>
+    <p class="muted">{{ message }}</p>
+    <div class="btn-row" style="justify-content:center;margin-top:1rem">
+      <a class="btn btn-primary" href="{{ url_for('dashboard.home') }}">{{ _('nav.home') }}</a>
+      <a class="btn btn-outline" href="javascript:history.back()">{{ _('common.back') }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

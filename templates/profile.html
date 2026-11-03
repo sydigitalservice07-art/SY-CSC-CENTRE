@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('profile.title') }}{% endblock %}
+{% block page_title %}{{ _('profile.title') }}{% endblock %}
+{% block content %}
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('profile.title') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('operator.username') }}</dt><dd class="mono">{{ profile_user.username }}</dd>
+        <dt>{{ _('operator.role') }}</dt><dd>{{ profile_user.role|capitalize }}</dd>
+        <dt>{{ _('common.created') }}</dt><dd>{{ profile_user.created_at|datetime_fmt }}</dd>
+        <dt>Last login</dt><dd>{{ profile_user.last_login|datetime_fmt or '-' }}</dd>
+      </dl>
+      <div class="divider"></div>
+      <form method="post" action="{{ url_for('auth.profile') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>{{ _('common.name') }} <span class="req">*</span></label>
+            <input type="text" name="name" value="{{ profile_user.name }}" required></div>
+          <div class="field"><label>{{ _('common.mobile') }}</label>
+            <input type="text" name="mobile" value="{{ profile_user.mobile or '' }}"></div>
+          <div class="field"><label>{{ _('common.email') }}</label>
+            <input type="email" name="email" value="{{ profile_user.email or '' }}"></div>
+          <div class="field"><label>{{ _('common.address') }}</label>
+            <input type="text" name="address" value="{{ profile_user.address or '' }}"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('profile.change_password') }}</h3></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('auth.change_password') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field" style="margin-bottom:.7rem">
+          <label>{{ _('profile.current_password') }} <span class="req">*</span></label>
+          <input type="password" name="current_password" required autocomplete="current-password">
+        </div>
+        <div class="field" style="margin-bottom:.7rem">
+          <label>{{ _('profile.new_password') }} <span class="req">*</span></label>
+          <input type="password" name="new_password" required autocomplete="new-password">
+          <span class="help">Minimum 8 characters, with letters and numbers.</span>
+        </div>
+        <div class="field" style="margin-bottom:.9rem">
+          <label>{{ _('profile.confirm_password') }} <span class="req">*</span></label>
+          <input type="password" name="confirm_password" required autocomplete="new-password">
+        </div>
+        <button class="btn btn-navy" type="submit">{{ _('profile.change_password') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

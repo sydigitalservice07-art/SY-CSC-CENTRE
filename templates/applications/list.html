@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('app.title') }}{% endblock %}
+{% block page_title %}{{ _('app.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('app.title') }}</h1>
+  <span class="spacer"></span>
+  {% if has_permission('can_add_application') %}
+  <a class="btn btn-primary" href="{{ url_for('applications.create') }}">{{ m.icon('plus') }} {{ _('app.add') }}</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('applications.index') }}" class="toolbar">
+      <div class="field grow"><label>{{ _('common.search') }}</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="AP / {{ _('customer.code') }} / {{ _('common.mobile') }}"></div>
+      <div class="field"><label>{{ _('common.status') }}</label>
+        <select name="status">
+          <option value="">{{ _('common.all') }}</option>
+          {% for s in statuses %}
+          <option value="{{ s }}" {{ 'selected' if status == s }}>{{ s }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label>{{ _('app.service') }}</label>
+        <select name="service_id">
+          <option value="">{{ _('common.all') }}</option>
+          {% for s in services %}
+          <option value="{{ s.id }}" {{ 'selected' if service_id == s.id }}>{{ s.name }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label>List</label>
+        <select name="show">
+          <option value="active" {{ 'selected' if show == 'active' }}>Active / pending only</option>
+          <option value="all" {{ 'selected' if show == 'all' }}>All (incl. completed &amp; archived)</option>
+        </select></div>
+      <div class="field"><label>{{ _('common.from') }}</label>
+        <input type="date" name="from" value="{{ date_from }}"></div>
+      <div class="field"><label>{{ _('common.to') }}</label>
+        <input type="date" name="to" value="{{ date_to }}"></div>
+      <button class="btn btn-navy" type="submit">{{ m.icon('search') }} {{ _('common.search') }}</button>
+      <a class="btn btn-outline" href="{{ url_for('applications.index') }}">{{ _('common.reset') }}</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr>
+        <th>{{ _('app.id') }}</th><th>{{ _('app.customer') }}</th><th>{{ _('app.service') }}</th>
+        <th>{{ _('app.apply_date') }}</th><th>{{ _('app.operator') }}</th>
+        <th>{{ _('common.status') }}</th>
+        <th class="num">{{ _('app.charge') }}</th><th class="num">{{ _('app.govt_charge') }}</th>
+        <th class="num">{{ _('app.csc_charge') }}</th><th class="num">{{ _('common.total') }}</th>
+        <th class="num">{{ _('common.paid') }}</th><th class="num">{{ _('common.pending') }}</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {% for a in applications %}
+        <tr>
+          <td class="mono nowrap"><a href="{{ url_for('applications.detail', application_id=a.id) }}">{{ a.app_code }}</a>
+            {% if a.is_archived %}<span class="badge archived">{{ _('customer.archived') }}</span>{% endif %}</td>
+          <td>{{ a.first_name }} {{ a.surname }}
+            <div class="small muted mono">{{ a.customer_code }}</div></td>
+          <td>{{ a.service_name }}</td>
+          <td class="nowrap">{{ a.apply_date|date_fmt }}</td>
+          <td>{{ a.operator_name or '-' }}</td>
+          <td>{{ m.status_badge(a.status) }}</td>
+          <td class="num">{{ a.charge|money }}</td>
+          <td class="num">{{ a.govt_charge|money }}</td>
+          <td class="num">{{ a.csc_charge|money }}</td>
+          <td class="num"><strong>{{ a.total|money }}</strong></td>
+          <td class="num">{{ a.amount_paid|money }}</td>
+          <td class="num {% if a.amount_pending > 0 %}muted{% endif %}">{{ a.amount_pending|money }}</td>
+          <td class="right nowrap">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('applications.detail', application_id=a.id) }}">{{ _('common.view') }}</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="13" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.pager(page_info, 'applications.index', {'q': q, 'status': status, 'service_id': service_id, 'show': show, 'from': date_from, 'to': date_to}) }}
+</div>
+<p class="small muted">Completed applications that are fully paid are hidden from this
+default list &mdash; they stay in the customer history, the archive, search and reports.</p>
+{% endblock %}

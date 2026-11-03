@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('msg.compose') }}{% endblock %}
+{% block page_title %}{{ _('msg.compose') }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:760px">
+  <div class="card-head"><h3>{{ _('msg.compose') }}</h3></div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('messages.compose') }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field" style="margin-bottom:.7rem">
+        <label>{{ _('msg.to') }} <span class="req">*</span></label>
+        <select name="recipient_id" required>
+          {% if is_admin %}<option value="all">{{ _('msg.all_operators') }}</option>{% endif %}
+          {% for op in operators %}
+          <option value="{{ op.id }}" {{ 'selected' if form.get('recipient_id') == op.id|string }}>
+            {{ op.name }} ({{ op.username }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:.7rem">
+        <label>{{ _('msg.subject') }} <span class="req">*</span></label>
+        <input type="text" name="subject" value="{{ form.get('subject', '') }}" required maxlength="160">
+      </div>
+      <div class="field" style="margin-bottom:.9rem">
+        <label>{{ _('msg.body') }} <span class="req">*</span></label>
+        <textarea name="body" rows="7" required>{{ form.get('body', '') }}</textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" type="submit">{{ _('msg.send') }}</button>
+        <a class="btn btn-outline" href="{{ url_for('messages.index') }}">{{ _('common.cancel') }}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

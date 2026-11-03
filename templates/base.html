@@ -1,0 +1,100 @@
+{% import "_macros.html" as m with context %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <meta name="theme-color" content="#0b2447">
+  <title>{% block title %}{{ app_name }}{% endblock %} | {{ app_name }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SY CSC CENTRE logo">
+      <div class="brand-text">
+        <strong>SY CSC CENTRE</strong>
+        <span>{{ _('login.subtitle') }}</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="{{ url_for('dashboard.home') }}"
+         class="{{ 'active' if request.endpoint == 'dashboard.home' }}">{{ m.icon('home') }} {{ _('nav.home') }}</a>
+      <a href="{{ url_for('customers.index') }}"
+         class="{{ 'active' if request.blueprint == 'customers' }}">{{ m.icon('users') }} {{ _('nav.customer') }}</a>
+      {% if user and user.role == 'admin' %}
+      <a href="{{ url_for('operators.index') }}"
+         class="{{ 'active' if request.blueprint == 'operators' }}">{{ m.icon('briefcase') }} {{ _('nav.operator') }}</a>
+      {% endif %}
+      <a href="{{ url_for('services.index') }}"
+         class="{{ 'active' if request.blueprint == 'services' }}">{{ m.icon('layers') }} {{ _('nav.services') }}</a>
+      {% if user and (user.role == 'admin' or has_permission('can_view_reports')) %}
+      <a href="{{ url_for('reports.index') }}"
+         class="{{ 'active' if request.blueprint == 'reports' }}">{{ m.icon('chart') }} {{ _('nav.report') }}</a>
+      {% endif %}
+      <a href="{{ url_for('messages.index') }}"
+         class="{{ 'active' if request.blueprint == 'messages' }}">{{ m.icon('chat') }} {{ _('nav.messages') }}
+        {% if unread_count %}<span class="badge-count">{{ unread_count }}</span>{% endif %}</a>
+      {% if user and user.role == 'admin' %}
+      <a href="{{ url_for('accounts.index') }}"
+         class="{{ 'active' if request.blueprint == 'accounts' }}">{{ m.icon('book') }} {{ _('nav.account') }}</a>
+      {% endif %}
+      {% if user and (user.role == 'admin' or has_permission('can_access_archive')) %}
+      <a href="{{ url_for('applications.archived') }}"
+         class="{{ 'active' if request.endpoint == 'applications.archived' }}">{{ m.icon('archive') }} {{ _('nav.archive') }}</a>
+      {% endif %}
+      <div class="nav-section">{{ _('common.record') }}</div>
+      <a href="{{ url_for('applications.index') }}"
+         class="{{ 'active' if request.endpoint in ['applications.index', 'applications.detail'] }}">{{ m.icon('layers') }} {{ _('app.title') }}</a>
+      <a href="{{ url_for('payments.index') }}"
+         class="{{ 'active' if request.blueprint == 'payments' }}">{{ m.icon('money') }} {{ _('payment.title') }}</a>
+      <a href="{{ url_for('auth.profile') }}"
+         class="{{ 'active' if request.endpoint == 'auth.profile' }}">{{ m.icon('user') }} {{ _('nav.profile') }}</a>
+      {% if user and user.role == 'admin' %}
+      <a href="{{ url_for('backup.index') }}"
+         class="{{ 'active' if request.blueprint == 'backup' }}">{{ m.icon('database') }} {{ _('nav.backup') }}</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-foot">
+      SY CSC CENTRE v1.0<br>Offline &middot; Local network
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" type="button" aria-label="{{ _('nav.menu') }}">&#9776;</button>
+      <span class="page-title">{% block page_title %}{{ _('dashboard.title') }}{% endblock %}</span>
+      <span class="spacer"></span>
+      <div class="lang-switch no-print">
+        {% for code, name in languages %}
+        <a href="{{ url_for('auth.set_language', code=code) }}"
+           class="{{ 'on' if lang == code }}">{{ name }}</a>
+        {% endfor %}
+      </div>
+      {% if user %}
+      <div class="user-chip">
+        <span class="avatar">{{ user.name[:1]|upper }}</span>
+        <span class="uname">{{ user.name }}<br><small class="muted">{{ user.role|capitalize }}</small></span>
+        <a class="btn btn-outline btn-sm" href="{{ url_for('auth.logout') }}">{{ _('common.logout') }}</a>
+      </div>
+      {% endif %}
+    </header>
+
+    <main class="content">
+      {{ m.flash_messages() }}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="box"><span class="spin-dark"></span> {{ _('common.loading') }}</div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

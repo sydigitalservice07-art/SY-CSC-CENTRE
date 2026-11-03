@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('account.title') }}{% endblock %}
+{% block page_title %}{{ _('account.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('account.title') }}</h1>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-outline" href="{{ url_for('reports.index', type='credit_debit', period='month') }}">{{ _('report.title') }}</a>
+    <button class="btn btn-navy" type="button" data-print>{{ m.icon('print') }} {{ _('common.print') }}</button>
+  </div>
+</div>
+
+<div class="grid cols-3">
+  {% for name, bal in balances.items() %}
+  <div class="stat">
+    <div class="label">{{ name }} &mdash; {{ _('account.closing_balance') }}</div>
+    <div class="value {{ 'teal' if bal.balance > 0 }}">{{ currency }} {{ bal.balance|money }}</div>
+    <div class="hint">{{ _('account.opening_balance') }} {{ bal.opening|money }} &middot;
+      +{{ bal.credits|money }} / -{{ bal.debits|money }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('account.add_entry') }}</h3></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('accounts.add_entry') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>{{ _('common.type') }}</label>
+            <select name="entry_type" id="entryType">
+              <option value="credit">{{ _('account.credit') }}</option>
+              <option value="debit">{{ _('account.debit') }}</option>
+            </select></div>
+          <div class="field"><label>Account</label>
+            <select name="account">
+              {% for a in accounts %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+            </select></div>
+          <div class="field"><label>{{ _('account.category') }} <span class="req">*</span></label>
+            <input type="text" name="category" list="categoryList" required>
+            <datalist id="categoryList">
+              {% for c in income_categories %}<option value="{{ c }}">{% endfor %}
+              {% for c in expense_categories %}<option value="{{ c }}">{% endfor %}
+            </datalist></div>
+          <div class="field"><label>{{ _('common.amount') }} <span class="req">*</span></label>
+            <input type="number" step="0.01" min="0.01" name="amount" required></div>
+          <div class="field"><label>{{ _('common.date') }}</label>
+            <input type="date" name="entry_date" value="{{ today|iso_date }}"></div>
+          <div class="field"><label>{{ _('common.reference') }}</label>
+            <input type="text" name="reference_no"></div>
+          <div class="field full"><label>{{ _('account.description') }}</label>
+            <input type="text" name="description"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('account.transfer') }}</h3></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('accounts.transfer') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>{{ _('account.from_account') }}</label>
+            <select name="from_account">
+              {% for a in accounts %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+            </select></div>
+          <div class="field"><label>{{ _('account.to_account') }}</label>
+            <select name="to_account">
+              {% for a in accounts %}<option value="{{ a }}" {{ 'selected' if a == 'Bank' }}>{{ a }}</option>{% endfor %}
+            </select></div>
+          <div class="field"><label>{{ _('common.amount') }} <span class="req">*</span></label>
+            <input type="number" step="0.01" min="0.01" name="amount" required></div>
+          <div class="field"><label>{{ _('common.date') }}</label>
+            <input type="date" name="entry_date" value="{{ today|iso_date }}"></div>
+          <div class="field full"><label>{{ _('account.description') }}</label>
+            <input type="text" name="description" placeholder="Cash deposited to bank"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-navy" type="submit">{{ _('account.transfer') }}</button>
+        </div>
+      </form>
+
+      <div class="divider"></div>
+      <div class="notice warn">
+        {{ _('app.govt_charge') }} collected: <strong>{{ currency }} {{ govt.collected|money }}</strong>
+        &middot; paid to government: <strong>{{ currency }} {{ govt.paid_out|money }}</strong>
+        &middot; payable: <strong>{{ currency }} {{ govt.payable|money }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>{{ _('account.ledger') }}</h3>
+    <span class="spacer"></span>
+    <span class="small muted">{{ _('account.credit') }} {{ sums.credits|money }} &middot;
+      {{ _('account.debit') }} {{ sums.debits|money }}</span></div>
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('accounts.index') }}" class="toolbar">
+      <div class="field grow"><label>{{ _('common.search') }}</label>
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="{{ _('account.voucher') }} / description"></div>
+      <div class="field"><label>Account</label>
+        <select name="account">
+          <option value="">{{ _('common.all') }}</option>
+          {% for a in accounts %}<option value="{{ a }}" {{ 'selected' if filters.account == a }}>{{ a }}</option>{% endfor %}
+        </select></div>
+      <div class="field"><label>{{ _('common.type') }}</label>
+        <select name="entry_type">
+          <option value="">{{ _('common.all') }}</option>
+          <option value="credit" {{ 'selected' if filters.entry_type == 'credit' }}>{{ _('account.credit') }}</option>
+          <option value="debit" {{ 'selected' if filters.entry_type == 'debit' }}>{{ _('account.debit') }}</option>
+        </select></div>
+      <div class="field"><label>{{ _('account.category') }}</label>
+        <input type="text" name="category" value="{{ filters.category }}"></div>
+      <div class="field"><label>{{ _('common.from') }}</label><input type="date" name="from" value="{{ filters.from }}"></div>
+      <div class="field"><label>{{ _('common.to') }}</label><input type="date" name="to" value="{{ filters.to }}"></div>
+      <button class="btn btn-navy" type="submit">{{ m.icon('search') }} {{ _('common.search') }}</button>
+      <a class="btn btn-outline" href="{{ url_for('accounts.index') }}">{{ _('common.reset') }}</a>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data compact">
+      <thead><tr><th>{{ _('common.date') }}</th><th>{{ _('account.voucher') }}</th>
+        <th>Account</th><th>{{ _('account.category') }}</th><th>{{ _('account.description') }}</th>
+        <th class="num">{{ _('account.credit') }}</th><th class="num">{{ _('account.debit') }}</th>
+        <th>{{ _('common.by') }}</th></tr></thead>
+      <tbody>
+      {% for e in entries %}
+        <tr>
+          <td class="nowrap">{{ e.entry_date|date_fmt }}</td>
+          <td class="mono small">{{ e.voucher_no }}</td>
+          <td>{{ e.account }}</td>
+          <td>{{ e.category }}</td>
+          <td class="small">{{ e.description }}
+            {% if e.reference_no %}<div class="small muted">Ref: {{ e.reference_no }}</div>{% endif %}</td>
+          <td class="num">{{ e.amount|money if e.entry_type == 'credit' else '' }}</td>
+          <td class="num">{{ e.amount|money if e.entry_type == 'debit' else '' }}</td>
+          <td class="small">{{ e.created_by_name or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="5">{{ _('common.total') }}</td>
+        <td class="num">{{ sums.credits|money }}</td><td class="num">{{ sums.debits|money }}</td><td></td></tr></tfoot>
+    </table>
+  </div>
+  {{ m.pager(page_info, 'accounts.index', {'q': filters.q, 'account': filters.account, 'entry_type': filters.entry_type, 'category': filters.category, 'from': filters.from, 'to': filters.to}) }}
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>{{ _('account.opening_balance') }} &amp; CSC settings</h3></div>
+  <div class="card-body">
+    <div class="grid cols-2">
+      <form method="post" action="{{ url_for('accounts.opening_balance') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>Account</label>
+            <select name="account">{% for a in accounts %}<option value="{{ a }}">{{ a }}</option>{% endfor %}</select></div>
+          <div class="field"><label>{{ _('account.opening_balance') }}</label>
+            <input type="number" step="0.01" name="opening_balance" value="0.00"></div>
+        </div>
+        <button class="btn btn-outline" type="submit" style="margin-top:.6rem">{{ _('common.save') }}</button>
+      </form>
+
+      <form method="post" action="{{ url_for('accounts.settings') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>CSC name</label>
+            <input type="text" name="csc_name" value="{{ settings_name }}"></div>
+          <div class="field"><label>{{ _('common.mobile') }}</label>
+            <input type="text" name="csc_phone" value="{{ settings_phone }}"></div>
+          <div class="field full"><label>{{ _('common.address') }}</label>
+            <input type="text" name="csc_address" value="{{ settings_address }}"></div>
+          <div class="field full"><label>Receipt footer</label>
+            <input type="text" name="receipt_footer" value="{{ settings_footer }}"></div>
+          <div class="field"><label>PDF "Charge" classification</label>
+            <select name="charge_classification">
+              <option value="csc_income" {{ 'selected' if settings_classification == 'csc_income' }}>csc_income</option>
+              <option value="govt_charge" {{ 'selected' if settings_classification == 'govt_charge' }}>govt_charge</option>
+              <option value="other_income" {{ 'selected' if settings_classification == 'other_income' }}>other_income</option>
+            </select></div>
+          <div class="field"><label>{{ _('payment.csc_signature') }}</label>
+            <input type="file" name="csc_signature" accept="image/*"></div>
+        </div>
+        <button class="btn btn-outline" type="submit" style="margin-top:.6rem">{{ _('common.save') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

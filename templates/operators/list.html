@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('operator.title') }}{% endblock %}
+{% block page_title %}{{ _('operator.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('operator.title') }}</h1>
+  <span class="spacer"></span>
+  <a class="btn btn-primary" href="{{ url_for('operators.create') }}">{{ m.icon('plus') }} {{ _('operator.add') }}</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>{{ _('common.name') }}</th><th>{{ _('operator.username') }}</th>
+        <th>{{ _('common.mobile') }}</th><th class="num">{{ _('app.title') }}</th>
+        <th>{{ _('common.status') }}</th><th>{{ _('operator.permissions') }}</th>
+        <th>Last login</th><th></th></tr></thead>
+      <tbody>
+      {% for op in operators %}
+        <tr>
+          <td><a href="{{ url_for('operators.detail', operator_id=op.id) }}">{{ op.name }}</a></td>
+          <td class="mono">{{ op.username }}</td>
+          <td class="nowrap">{{ op.mobile|mobile_fmt or '-' }}</td>
+          <td class="num">{{ op.app_count }}</td>
+          <td><span class="badge {{ op.status }}">{{ op.status|capitalize }}</span></td>
+          <td class="small">
+            {% set perms = perm_map.get(op.id) %}
+            {% if perms %}
+              {% for field, label in permission_fields %}
+                {% if perms[field] %}<span class="badge info" style="margin:1px">{{ label }}</span>{% endif %}
+              {% endfor %}
+            {% else %}
+              <span class="muted">default</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ op.last_login|datetime_fmt or '-' }}</td>
+          <td class="right nowrap">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('operators.edit', operator_id=op.id) }}">{{ _('common.edit') }}</a>
+            <form method="post" action="{{ url_for('operators.toggle', operator_id=op.id) }}"
+                  style="display:inline" data-confirm="Change this operator's account status?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm {{ 'btn-warn' if op.status == 'active' else 'btn-primary' }}" type="submit">
+                {{ _('operator.deactivate') if op.status == 'active' else _('operator.activate') }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="small muted">Permissions are checked on the server for every request &mdash;
+hiding a button is never the only protection.</p>
+{% endblock %}

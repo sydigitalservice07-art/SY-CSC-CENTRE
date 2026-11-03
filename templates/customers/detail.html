@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ customer.first_name }} {{ customer.surname }}{% endblock %}
+{% block page_title %}{{ _('nav.customer') }} &middot; {{ customer.customer_code }}{% endblock %}
+{% block content %}
+
+{% if show_created %}
+<div class="notice">
+  <strong>{{ _('customer.created_success') }}!</strong>
+  {{ _('customer.code') }}: <span class="mono">{{ customer.customer_code }}</span>
+  &mdash; please note it down.
+</div>
+{% endif %}
+
+<div class="page-head">
+  <h1>{{ customer.first_name }} {{ customer.surname }}</h1>
+  <span class="badge {{ customer.status }}">{{ customer.status|capitalize }}</span>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    {% if has_permission('can_edit_customer') %}
+    <a class="btn btn-outline" href="{{ url_for('customers.edit', customer_id=customer.id) }}">{{ _('common.edit') }}</a>
+    {% endif %}
+    {% if has_permission('can_add_application') %}
+    <a class="btn btn-primary" href="{{ url_for('applications.create', customer_id=customer.id) }}">{{ m.icon('plus') }} {{ _('app.add') }}</a>
+    {% endif %}
+    {% if user.role == 'admin' %}
+      {% if customer.status == 'active' %}
+      <form method="post" action="{{ url_for('customers.archive', customer_id=customer.id) }}"
+            data-confirm="Archive this customer? All history is kept." style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="reason" value="Archived from customer page">
+        <button class="btn btn-warn btn-sm" type="submit">{{ _('customer.archive') }}</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('customers.restore', customer_id=customer.id) }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline btn-sm" type="submit">{{ _('customer.restore') }}</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid cols-3">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('customer.personal_info') }}</h3></div>
+    <div class="card-body">
+      <div class="btn-row" style="margin-bottom:.8rem">
+        {% if customer.photo_path %}
+        <img class="avatar-lg" src="{{ url_for('uploaded_file', filename=customer.photo_path) }}" alt="photo">
+        {% else %}
+        <div class="avatar-lg" style="display:grid;place-items:center;color:#94a3b8">No photo</div>
+        {% endif %}
+        <div>
+          <div class="mono small">{{ customer.customer_code }}</div>
+          <div class="small muted">{{ _('customer.age') }}: {{ age or '-' }}</div>
+        </div>
+      </div>
+      <dl class="kv">
+        <dt>{{ _('customer.surname') }}</dt><dd>{{ customer.surname }}</dd>
+        <dt>{{ _('common.name') }}</dt><dd>{{ customer.first_name }}</dd>
+        <dt>{{ _('customer.father') }}</dt><dd>{{ customer.father_surname or '' }} {{ customer.father_name or '' }}</dd>
+        <dt>{{ _('customer.mother') }}</dt><dd>{{ customer.mother_surname or '' }} {{ customer.mother_name or '' }}</dd>
+        <dt>{{ _('customer.dob') }}</dt><dd>{{ customer.dob|date_fmt or '-' }}</dd>
+        <dt>{{ _('customer.gender') }}</dt><dd>{{ customer.gender or '-' }}</dd>
+        <dt>{{ _('customer.marital') }}</dt><dd>{{ customer.marital_status or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('customer.contact') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('common.mobile') }}</dt><dd>{{ customer.mobile|mobile_fmt }}</dd>
+        <dt>{{ _('customer.alt_mobile') }}</dt><dd>{{ customer.alt_mobile|mobile_fmt or '-' }}</dd>
+        <dt>{{ _('common.email') }}</dt><dd>{{ customer.email or '-' }}</dd>
+        <dt>{{ _('customer.house') }}</dt><dd>{{ customer.house_no or '-' }}</dd>
+        <dt>{{ _('customer.street') }}</dt><dd>{{ customer.street or '-' }}</dd>
+        <dt>{{ _('customer.society') }}</dt><dd>{{ customer.society or '-' }}</dd>
+        <dt>{{ _('customer.colony') }}</dt><dd>{{ customer.colony or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('customer.address_info') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('customer.village') }}</dt><dd>{{ customer.village }}</dd>
+        <dt>{{ _('customer.taluka') }}</dt><dd>{{ customer.taluka }}</dd>
+        <dt>{{ _('customer.post_office') }}</dt><dd>{{ customer.post_office }}</dd>
+        <dt>{{ _('customer.district') }}</dt><dd>{{ customer.district }}</dd>
+        <dt>{{ _('customer.state') }}</dt><dd>{{ customer.state }}</dd>
+        <dt>{{ _('customer.pincode') }}</dt><dd>{{ customer.pincode }}</dd>
+        <dt>{{ _('customer.aadhaar_name') }}</dt><dd>{{ customer.aadhaar_name or '-' }}</dd>
+        <dt>{{ _('customer.aadhaar_number') }}</dt>
+        <dd class="mono">{{ customer.aadhaar_number|mask_aadhaar or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols-2">
+  <div class="stat">
+    <div class="label">{{ _('common.paid') }}</div>
+    <div class="value teal">{{ currency }} {{ total_paid|money }}</div>
+  </div>
+  <div class="stat alt">
+    <div class="label">{{ _('common.pending') }}</div>
+    <div class="value">{{ currency }} {{ total_due|money }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="tabs">
+    <button class="on" data-tab="tabApps">{{ _('customer.apps_history') }} ({{ applications|length }})</button>
+    <button data-tab="tabPay">{{ _('customer.payment_history') }} ({{ payments|length }})</button>
+    <button data-tab="tabDocs">{{ _('customer.documents') }} ({{ documents|length }})</button>
+    <button data-tab="tabAct">{{ _('customer.activity') }}</button>
+  </div>
+  <div class="card-body">
+
+    <div class="tab-pane on" id="tabApps">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('app.id') }}</th><th>{{ _('app.apply_date') }}</th>
+            <th>{{ _('app.service') }}</th><th>{{ _('common.status') }}</th>
+            <th class="num">{{ _('common.total') }}</th><th class="num">{{ _('common.paid') }}</th>
+            <th class="num">{{ _('common.pending') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for a in applications %}
+            <tr>
+              <td class="mono"><a href="{{ url_for('applications.detail', application_id=a.id) }}">{{ a.app_code }}</a>
+                {% if a.is_archived %}<span class="badge archived">{{ _('customer.archived') }}</span>{% endif %}</td>
+              <td class="nowrap">{{ a.apply_date|date_fmt }}</td>
+              <td>{{ a.service_name }}</td>
+              <td>{{ m.status_badge(a.status) }}</td>
+              <td class="num">{{ a.total|money }}</td>
+              <td class="num">{{ a.amount_paid|money }}</td>
+              <td class="num">{{ a.amount_pending|money }}</td>
+              <td class="right"><a class="btn btn-sm btn-outline"
+                href="{{ url_for('applications.detail', application_id=a.id) }}">{{ _('common.view') }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabPay">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('payment.pay_id') }}</th><th>{{ _('common.date') }}</th>
+            <th>{{ _('app.id') }}</th><th class="num">{{ _('common.amount') }}</th>
+            <th class="num">CSC</th><th class="num">Govt</th>
+            <th>{{ _('common.payment_mode') }}</th><th>{{ _('common.status') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for p in payments %}
+            <tr>
+              <td class="mono">{{ p.payment_code }}</td>
+              <td class="nowrap">{{ p.payment_date|datetime_fmt }}</td>
+              <td class="mono">{{ p.app_code }}</td>
+              <td class="num">{{ p.amount|money }}</td>
+              <td class="num">{{ p.csc_amount|money }}</td>
+              <td class="num">{{ p.govt_amount|money }}</td>
+              <td>{{ p.payment_mode }}{% if p.is_refund %} <span class="badge danger">{{ _('payment.refund') }}</span>{% endif %}</td>
+              <td><span class="badge {{ 'Completed' if p.status == 'active' else 'Rejected' }}">{{ p.status }}</span></td>
+              <td class="right"><a class="btn btn-sm btn-outline"
+                href="{{ url_for('payments.receipt', payment_id=p.id) }}">{{ _('payment.receipt') }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="9" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabDocs">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('customer.doc_name') }}</th><th>{{ _('customer.doc_type') }}</th>
+            <th>{{ _('common.date') }}</th><th>{{ _('customer.protected') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for d in documents %}
+            <tr>
+              <td>{{ d.doc_name }}</td>
+              <td>{{ d.doc_type or '-' }}</td>
+              <td>{{ d.created_at|date_fmt }}</td>
+              <td>{% if d.is_protected %}<span class="badge info">Yes</span>{% else %}No{% endif %}</td>
+              <td class="right nowrap">
+                <form method="get" action="{{ url_for('customers.download_document', doc_id=d.id) }}" style="display:inline">
+                  <button class="btn btn-sm btn-outline" type="submit">Download</button>
+                </form>
+                {% if user.role == 'admin' %}
+                <form method="post" action="{{ url_for('customers.delete_document', doc_id=d.id) }}"
+                      data-confirm="Delete this document record?" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-danger" type="submit">{{ _('common.delete') }}</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if has_permission('can_edit_customer') %}
+      <div class="divider"></div>
+      <form method="post" action="{{ url_for('customers.add_document', customer_id=customer.id) }}"
+            enctype="multipart/form-data" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="field"><label>{{ _('customer.doc_name') }} <span class="req">*</span></label>
+            <input type="text" name="doc_name" required placeholder="Aadhaar Card"></div>
+          <div class="field"><label>{{ _('customer.doc_type') }}</label>
+            <input type="text" name="doc_type" placeholder="ID Proof"></div>
+          <div class="field"><label>File <span class="req">*</span></label>
+            <input type="file" name="file" required></div>
+          <div class="field"><label>{{ _('customer.doc_password') }}</label>
+            <input type="password" name="doc_password" autocomplete="new-password"></div>
+          <div class="checkline"><input type="checkbox" name="is_protected" id="is_protected" value="1">
+            <label for="is_protected">{{ _('customer.protected') }}</label></div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn btn-primary" type="submit">{{ _('customer.add_document') }}</button></div>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="tab-pane" id="tabAct">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>Action</th><th>{{ _('common.by') }}</th>
+            <th>{{ _('common.details') }}</th></tr></thead>
+          <tbody>
+          {% for a in activity %}
+            <tr><td class="nowrap">{{ a.created_at|datetime_fmt }}</td>
+              <td>{{ a.action }}</td><td>{{ a.username or '-' }}</td>
+              <td class="small">{{ a.details }}</td></tr>
+          {% else %}
+            <tr><td colspan="4" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('payment.title') }}{% endblock %}
+{% block page_title %}{{ _('payment.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('payment.title') }}</h1>
+  <span class="spacer"></span>
+  <span class="small muted">{{ _('dashboard.today_income') }} = {{ _('app.csc_charge') }} only</span>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('payments.index') }}" class="toolbar">
+      <div class="field grow"><label>{{ _('common.search') }}</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="PAY / AP / {{ _('common.mobile') }}"></div>
+      <div class="field"><label>{{ _('common.payment_mode') }}</label>
+        <select name="mode">
+          <option value="">{{ _('common.all') }}</option>
+          {% for mode_name in modes %}
+          <option value="{{ mode_name }}" {{ 'selected' if mode == mode_name }}>{{ mode_name }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label>{{ _('common.from') }}</label><input type="date" name="from" value="{{ date_from }}"></div>
+      <div class="field"><label>{{ _('common.to') }}</label><input type="date" name="to" value="{{ date_to }}"></div>
+      <button class="btn btn-navy" type="submit">{{ m.icon('search') }} {{ _('common.search') }}</button>
+      <a class="btn btn-outline" href="{{ url_for('payments.index') }}">{{ _('common.reset') }}</a>
+    </form>
+  </div>
+</div>
+
+<div class="grid cols-3">
+  <div class="stat"><div class="label">{{ _('common.total') }} {{ _('common.amount') }}</div>
+    <div class="value">{{ currency }} {{ totals.amount|money }}</div></div>
+  <div class="stat"><div class="label">{{ _('app.csc_charge') }}</div>
+    <div class="value teal">{{ currency }} {{ totals.csc|money }}</div></div>
+  <div class="stat"><div class="label">{{ _('app.govt_charge') }}</div>
+    <div class="value">{{ currency }} {{ totals.govt|money }}</div></div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>{{ _('payment.pay_id') }}</th><th>{{ _('common.date') }}</th>
+        <th>{{ _('app.id') }}</th><th>{{ _('app.customer') }}</th>
+        <th class="num">{{ _('common.amount') }}</th><th class="num">CSC</th>
+        <th class="num">Govt</th><th>{{ _('common.payment_mode') }}</th>
+        <th>{{ _('common.reference') }}</th><th>{{ _('common.by') }}</th>
+        <th>{{ _('common.status') }}</th><th></th></tr></thead>
+      <tbody>
+      {% for p in payments %}
+        <tr>
+          <td class="mono nowrap">{{ p.payment_code }}{% if p.is_refund %} <span class="badge danger">R</span>{% endif %}</td>
+          <td class="nowrap">{{ p.payment_date|datetime_fmt }}</td>
+          <td class="mono"><a href="{{ url_for('applications.detail', application_id=p.application_id) }}">{{ p.app_code }}</a></td>
+          <td>{{ p.first_name }} {{ p.surname }}<div class="small muted mono">{{ p.customer_code }}</div></td>
+          <td class="num">{{ p.amount|money }}</td>
+          <td class="num">{{ p.csc_amount|money }}</td>
+          <td class="num">{{ p.govt_amount|money }}</td>
+          <td>{{ p.payment_mode }}</td>
+          <td class="small">{{ p.reference_no or '-' }}</td>
+          <td class="small">{{ p.created_by_name or '-' }}</td>
+          <td><span class="badge {{ 'Completed' if p.status == 'active' else 'Rejected' }}">{{ p.status }}</span></td>
+          <td class="right nowrap">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('payments.receipt', payment_id=p.id) }}">{{ _('payment.receipt') }}</a>
+            {% if user.role == 'admin' and p.status == 'active' and not p.is_refund %}
+            <form method="post" action="{{ url_for('payments.reverse', payment_id=p.id) }}"
+                  style="display:inline" data-confirm="Reverse this payment?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="reason" value="Reversed from payment list">
+              <button class="btn btn-sm btn-danger" type="submit">{{ _('payment.refund') }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="12" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.pager(page_info, 'payments.index', {'q': q, 'mode': mode, 'from': date_from, 'to': date_to}) }}
+</div>
+{% endblock %}

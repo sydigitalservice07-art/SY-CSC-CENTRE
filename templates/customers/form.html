@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set editing = mode == 'edit' %}
+{% block title %}{{ _('customer.edit') if editing else _('customer.add') }}{% endblock %}
+{% block page_title %}{{ _('customer.edit') if editing else _('customer.add') }}{% endblock %}
+{% block content %}
+
+<form method="post" enctype="multipart/form-data" data-loading
+      action="{{ url_for('customers.edit', customer_id=customer_id) if editing else url_for('customers.create') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card">
+    <div class="card-head">
+      <h2>{{ _('customer.personal_info') }}</h2>
+      <span class="spacer"></span>
+      {% if editing %}<span class="badge info mono">{{ customer.customer_code }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>{{ _('customer.code') }}</label>
+          <input type="text" value="{{ customer.customer_code or 'Auto generated' }}" readonly>
+          <span class="help">SYCSC/CUST/&lt;last 5 mobile digits&gt;/&lt;sequence&gt;</span>
+        </div>
+        {{ m.text_field('surname', _('customer.surname'), customer.surname, required=true) }}
+        {{ m.text_field('first_name', _('customer.name'), customer.first_name, required=true) }}
+        <div class="field">
+          <label for="dob">{{ _('customer.dob') }}</label>
+          <input type="date" name="dob" id="dob" value="{{ customer.dob|iso_date }}">
+          <span class="help">{{ _('customer.age') }}: <strong>{{ age or '-' }}</strong></span>
+        </div>
+        <div class="field">
+          <label for="gender">{{ _('customer.gender') }}</label>
+          <select name="gender" id="gender">
+            <option value="">--</option>
+            {% for g in genders %}
+            <option value="{{ g }}" {{ 'selected' if customer.gender == g }}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="marital_status">{{ _('customer.marital') }}</label>
+          <select name="marital_status" id="marital_status">
+            <option value="">--</option>
+            {% for s in marital %}
+            <option value="{{ s }}" {{ 'selected' if customer.marital_status == s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ _('customer.parents_info') }}</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ m.text_field('father_surname', _('customer.surname'), customer.father_surname) }}
+        {{ m.text_field('father_name', _('customer.father'), customer.father_name) }}
+        <div class="field"></div>
+        {{ m.text_field('mother_surname', _('customer.surname'), customer.mother_surname) }}
+        {{ m.text_field('mother_name', _('customer.mother'), customer.mother_name) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ _('customer.contact') }}</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="mobile">{{ _('common.mobile') }} <span class="req">*</span></label>
+          <input type="text" name="mobile" id="mobile" value="{{ customer.mobile or '' }}"
+                 placeholder="9876543210" required inputmode="numeric" maxlength="14">
+          <span class="help">+91 00000 00000 &mdash; 10 digits, starts with 6-9</span>
+        </div>
+        {{ m.text_field('alt_mobile', _('customer.alt_mobile'), customer.alt_mobile, placeholder='9876543211') }}
+        {{ m.text_field('email', _('common.email'), customer.email, type='email', placeholder='name@example.com') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ _('customer.address_info') }}</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ m.text_field('house_no', _('customer.house'), customer.house_no) }}
+        {{ m.text_field('street', _('customer.street'), customer.street) }}
+        {{ m.text_field('society', _('customer.society'), customer.society) }}
+        {{ m.text_field('colony', _('customer.colony'), customer.colony) }}
+        {{ m.text_field('village', _('customer.village'), customer.village, required=true) }}
+        {{ m.text_field('taluka', _('customer.taluka'), customer.taluka, required=true) }}
+        {{ m.text_field('post_office', _('customer.post_office'), customer.post_office, required=true) }}
+        {{ m.text_field('district', _('customer.district'), customer.district, required=true) }}
+        {{ m.text_field('state', _('customer.state'), customer.state or 'Gujarat', required=true) }}
+        {{ m.text_field('pincode', _('customer.pincode'), customer.pincode, required=true, placeholder='387001') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>{{ _('customer.additional_info') }}</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ m.text_field('aadhaar_name', _('customer.aadhaar_name'), customer.aadhaar_name) }}
+        <div class="field">
+          <label for="aadhaar_number">{{ _('customer.aadhaar_number') }}</label>
+          <input type="text" name="aadhaar_number" id="aadhaar_number" maxlength="12"
+                 value="{{ customer.aadhaar_number or '' }}" inputmode="numeric">
+          <span class="help">12 digits. Shown masked (XXXX XXXX 1234) in every list.</span>
+        </div>
+        <div class="field">
+          <label for="photo">{{ _('customer.photo') }}</label>
+          <input type="file" name="photo" id="photo" accept="image/*">
+          <span class="help">Compressed to &le; 50 KB automatically.</span>
+        </div>
+        <div class="field">
+          <label for="signature">{{ _('customer.signature') }}</label>
+          <input type="file" name="signature" id="signature" accept="image/*">
+        </div>
+        <div class="field">
+          <label>{{ _('common.notes') }}</label>
+          <textarea name="notes" rows="2">{{ customer.notes or '' }}</textarea>
+        </div>
+        {% if editing and customer.photo_path %}
+        <div class="field"><label>{{ _('customer.photo') }}</label>
+          <img class="avatar-lg" src="{{ url_for('uploaded_file', filename=customer.photo_path) }}" alt="photo"></div>
+        {% endif %}
+        {% if editing and customer.signature_path %}
+        <div class="field"><label>{{ _('customer.signature') }}</label>
+          <img class="avatar-lg" src="{{ url_for('uploaded_file', filename=customer.signature_path) }}" alt="signature"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+    <a class="btn btn-outline" href="{{ url_for('customers.detail', customer_id=customer_id) if editing else url_for('customers.index') }}">{{ _('common.cancel') }}</a>
+  </div>
+</form>
+{% endblock %}

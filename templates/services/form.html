@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set editing = mode == 'edit' %}
+{% block title %}{{ _('service.edit') if editing else _('service.add') }}{% endblock %}
+{% block page_title %}{{ _('service.edit') if editing else _('service.add') }}{% endblock %}
+{% block content %}
+<form method="post" data-loading
+      action="{{ url_for('services.edit', service_id=service_id) if editing else url_for('services.create') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card">
+    <div class="card-head"><h2>{{ _('service.title') }}</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>{{ _('service.name') }} <span class="req">*</span></label>
+          <input type="text" name="name" value="{{ service.name or '' }}" required></div>
+        <div class="field"><label>{{ _('service.category') }}</label>
+          <input type="text" name="category" value="{{ service.category or '' }}"></div>
+        <div class="field"><label>{{ _('service.form_type') }}</label>
+          <select name="form_key">
+            {% for key in form_keys %}
+            <option value="{{ key }}" {{ 'selected' if service.form_key == key }}>{{ key|upper }}</option>
+            {% endfor %}
+          </select></div>
+        <div class="field full"><label>{{ _('service.description') }}</label>
+          <textarea name="description" rows="2">{{ service.description or '' }}</textarea></div>
+        <div class="field"><label>{{ _('service.default_charge') }}</label>
+          <input type="number" step="0.01" min="0" name="default_charge"
+                 value="{{ '%.2f'|format(service.default_charge|float) if service.default_charge is not undefined else '0.00' }}"></div>
+        <div class="field"><label>{{ _('service.govt_charge') }}</label>
+          <input type="number" step="0.01" min="0" name="default_govt_charge"
+                 value="{{ '%.2f'|format(service.default_govt_charge|float) if service.default_govt_charge is not undefined else '0.00' }}"></div>
+        <div class="field"><label>{{ _('service.csc_charge') }}</label>
+          <input type="number" step="0.01" min="0" name="default_csc_charge"
+                 value="{{ '%.2f'|format(service.default_csc_charge|float) if service.default_csc_charge is not undefined else '0.00' }}"></div>
+        <div class="field"><label>{{ _('service.processing_days') }}</label>
+          <input type="number" min="0" name="processing_days" value="{{ service.processing_days or '' }}"></div>
+        <div class="field full"><label>{{ _('service.required_docs') }}</label>
+          <input type="text" name="required_documents" value="{{ service.required_documents or '' }}"
+                 placeholder="Aadhaar Card, Photo, Signature"></div>
+        <div class="checkline"><input type="checkbox" name="is_active" id="is_active" value="1"
+            {{ 'checked' if service.is_active in (1, '1', True, none) }}>
+          <label for="is_active">{{ _('service.active') }}</label></div>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+    <a class="btn btn-outline" href="{{ url_for('services.index') }}">{{ _('common.cancel') }}</a>
+  </div>
+</form>
+{% endblock %}

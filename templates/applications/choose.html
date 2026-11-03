@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('app.add') }}{% endblock %}
+{% block page_title %}{{ _('app.add') }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-head"><h2>{{ _('app.select_customer_service') }}</h2></div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('applications.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid two">
+        <div class="field">
+          <label>{{ _('app.customer') }} <span class="req">*</span></label>
+          <input type="text" id="customerPicker" autocomplete="off"
+                 data-url="{{ url_for('customers.quick_search') }}"
+                 placeholder="{{ _('customer.search_placeholder') }}">
+          <span class="help">Type at least 2 characters of name / mobile / customer ID.</span>
+          <div id="customerResults" style="margin-top:.4rem"></div>
+          <div style="margin-top:.4rem">Selected: <span id="customerChosen" class="muted">none</span></div>
+          <input type="hidden" name="customer_id" id="customerIdField" required>
+        </div>
+        <div class="field">
+          <label>{{ _('app.service') }} <span class="req">*</span></label>
+          <select name="service_id" required>
+            <option value="">{{ _('common.select') }}</option>
+            {% for s in services %}
+            <option value="{{ s.id }}">{{ s.name }} &mdash; {{ s.category or '' }}</option>
+            {% endfor %}
+          </select>
+          <span class="help">The correct PDF form opens automatically for the service.</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Continue &rarr;</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Recent customers</h3></div>
+  <div class="card-body tight">
+    <div class="table-wrap" style="max-height:420px;overflow:auto">
+      <table class="data compact">
+        <thead><tr><th>{{ _('customer.code') }}</th><th>{{ _('common.name') }}</th>
+          <th>{{ _('common.mobile') }}</th><th>{{ _('customer.village') }}</th><th></th></tr></thead>
+        <tbody>
+        {% for c in customers %}
+          <tr>
+            <td class="mono">{{ c.customer_code }}</td>
+            <td>{{ c.first_name }} {{ c.surname }}</td>
+            <td class="nowrap">{{ c.mobile|mobile_fmt }}</td>
+            <td>{{ c.village }}</td>
+            <td class="right">
+              <a class="btn btn-sm btn-outline"
+                 href="{{ url_for('applications.create', customer_id=c.id) }}">{{ _('app.add') }}</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

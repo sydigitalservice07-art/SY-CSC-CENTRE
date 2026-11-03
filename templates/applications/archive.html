@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('app.archived_list') }}{% endblock %}
+{% block page_title %}{{ _('nav.archive') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('app.archived_list') }}</h1>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('applications.archived') }}" class="toolbar">
+      <div class="field grow"><label>{{ _('common.search') }}</label>
+        <input type="text" name="q" value="{{ q }}"
+               placeholder="{{ _('customer.search_placeholder') }} / {{ _('app.id') }}"></div>
+      <div class="field"><label>{{ _('common.from') }}</label>
+        <input type="date" name="from" value="{{ date_from }}"></div>
+      <div class="field"><label>{{ _('common.to') }}</label>
+        <input type="date" name="to" value="{{ date_to }}"></div>
+      <button class="btn btn-navy" type="submit">{{ m.icon('search') }} {{ _('common.search') }}</button>
+      <a class="btn btn-outline" href="{{ url_for('applications.archived') }}">{{ _('common.reset') }}</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr>
+        <th>{{ _('app.id') }}</th><th>{{ _('customer.code') }}</th><th>{{ _('app.customer') }}</th>
+        <th>{{ _('app.service') }}</th><th>{{ _('app.apply_date') }}</th><th>{{ _('common.status') }}</th>
+        <th>{{ _('app.operator') }}</th><th class="num">{{ _('app.csc_charge') }}</th>
+        <th class="num">{{ _('app.govt_charge') }}</th><th class="num">{{ _('common.paid') }}</th>
+        <th class="num">{{ _('common.pending') }}</th><th>{{ _('app.archive_date') }}</th>
+        <th>{{ _('app.archived_by') }}</th><th>{{ _('common.reason') }}</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for a in applications %}
+        <tr>
+          <td class="mono nowrap"><a href="{{ url_for('applications.detail', application_id=a.id) }}">{{ a.app_code }}</a></td>
+          <td class="mono small">{{ a.customer_code }}</td>
+          <td>{{ a.first_name }} {{ a.surname }}<div class="small muted">{{ a.mobile|mobile_fmt }}</div></td>
+          <td>{{ a.service_name }}</td>
+          <td class="nowrap">{{ a.apply_date|date_fmt }}</td>
+          <td>{{ m.status_badge(a.status) }}</td>
+          <td>{{ a.operator_name or '-' }}</td>
+          <td class="num">{{ a.csc_charge|money }}</td>
+          <td class="num">{{ a.govt_charge|money }}</td>
+          <td class="num">{{ a.amount_paid|money }}</td>
+          <td class="num">{{ a.amount_pending|money }}</td>
+          <td class="nowrap">{{ a.archived_at|datetime_fmt }}</td>
+          <td>{{ a.archived_by_name or '-' }}</td>
+          <td class="small">{{ a.reason or '-' }}</td>
+          <td class="right nowrap">
+            <form method="post" action="{{ url_for('applications.restore', application_id=a.id) }}"
+                  style="display:inline" data-confirm="Restore this application?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary" type="submit">{{ _('app.restore') }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="15" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.pager(page_info, 'applications.archived', {'q': q, 'from': date_from, 'to': date_to}) }}
+</div>
+<p class="small muted">Restoring keeps the same application record &mdash; no duplicate
+application is created.</p>
+{% endblock %}

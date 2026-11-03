@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('customer.title') }}{% endblock %}
+{% block page_title %}{{ _('customer.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('customer.title') }}</h1>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    {% if has_permission('can_add_customer') %}
+    <a class="btn btn-primary" href="{{ url_for('customers.create') }}">{{ m.icon('plus') }} {{ _('customer.add') }}</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('customers.index') }}" class="toolbar">
+      <div class="field grow">
+        <label>{{ _('common.search') }}</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="{{ _('customer.search_placeholder') }}">
+      </div>
+      <div class="field">
+        <label>{{ _('common.status') }}</label>
+        <select name="status">
+          <option value="active" {{ 'selected' if status == 'active' }}>{{ _('service.active') }}</option>
+          <option value="archived" {{ 'selected' if status == 'archived' }}>{{ _('customer.archived') }}</option>
+          <option value="all" {{ 'selected' if status == 'all' }}>{{ _('common.all') }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ _('common.filter') }}</label>
+        <select name="sort">
+          <option value="id" {{ 'selected' if sort == 'id' }}>Newest first</option>
+          <option value="name" {{ 'selected' if sort == 'name' }}>{{ _('common.name') }}</option>
+          <option value="village" {{ 'selected' if sort == 'village' }}>{{ _('customer.village') }}</option>
+          <option value="code" {{ 'selected' if sort == 'code' }}>{{ _('customer.code') }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Order</label>
+        <select name="dir">
+          <option value="desc" {{ 'selected' if direction == 'desc' }}>&darr;</option>
+          <option value="asc" {{ 'selected' if direction == 'asc' }}>&uarr;</option>
+        </select>
+      </div>
+      <button class="btn btn-navy" type="submit">{{ m.icon('search') }} {{ _('common.search') }}</button>
+      <a class="btn btn-outline" href="{{ url_for('customers.index') }}">{{ _('common.reset') }}</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>{{ _('customer.code') }}</th><th>{{ _('common.name') }}</th>
+          <th>{{ _('common.mobile') }}</th><th>{{ _('customer.aadhaar_number') }}</th>
+          <th>{{ _('customer.village') }}</th><th>{{ _('customer.taluka') }}</th>
+          <th class="num">{{ _('app.title') }}</th><th>{{ _('common.status') }}</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in customers %}
+        <tr>
+          <td class="mono nowrap">{{ c.customer_code }}</td>
+          <td>
+            <a href="{{ url_for('customers.detail', customer_id=c.id) }}">
+              {{ c.first_name }} {{ c.surname }}</a>
+          </td>
+          <td class="nowrap">{{ c.mobile|mobile_fmt }}</td>
+          <td class="mono nowrap">{{ c.aadhaar_number|mask_aadhaar or '-' }}</td>
+          <td>{{ c.village }}</td>
+          <td>{{ c.taluka }}</td>
+          <td class="num">{{ c.app_count }}</td>
+          <td><span class="badge {{ c.status }}">{{ c.status|capitalize }}</span></td>
+          <td class="right nowrap">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('customers.detail', customer_id=c.id) }}">{{ _('common.view') }}</a>
+            {% if has_permission('can_add_application') %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('applications.create', customer_id=c.id) }}">{{ _('app.add') }}</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.pager(page_info, 'customers.index', {'q': q, 'status': status, 'sort': sort, 'dir': direction}) }}
+</div>
+{% endblock %}

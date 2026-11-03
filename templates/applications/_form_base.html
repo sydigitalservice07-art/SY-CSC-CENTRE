@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set editing = application and application.id %}
+{% set action_url = url_for('applications.edit', application_id=application.id) if editing else url_for('applications.create') %}
+{% block title %}{{ form_meta.label }}{% endblock %}
+{% block page_title %}{{ form_meta.label }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ form_meta.label }}</h1>
+  {% if editing %}<span class="badge info mono">{{ application.app_code }}</span>{% endif %}
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-outline" href="{{ url_for('customers.detail', customer_id=customer.id) }}">
+      {{ _('nav.customer') }}: {{ customer.first_name }} {{ customer.surname }}</a>
+    <a class="btn btn-outline" href="{{ url_for('applications.index') }}">{{ _('common.back') }}</a>
+  </div>
+</div>
+
+{% if duplicate and not editing %}
+<div class="notice danger">
+  <strong>{{ _('app.duplicate_warning') }}</strong>
+  <div class="table-wrap" style="margin-top:.5rem">
+    <table class="data compact" style="min-width:0">
+      <thead><tr><th>{{ _('app.id') }}</th><th>{{ _('app.apply_date') }}</th>
+        <th>{{ _('common.status') }}</th><th></th></tr></thead>
+      <tbody><tr>
+        <td class="mono">{{ duplicate.app_code }}</td>
+        <td>{{ duplicate.apply_date|date_fmt }}</td>
+        <td>{{ m.status_badge(duplicate.status) }}
+          {% if duplicate.is_archived %}<span class="badge archived">Archive</span>{% endif %}
+          {% if duplicate.is_deleted %}<span class="badge danger">Deleted</span>{% endif %}</td>
+        <td><a class="btn btn-sm btn-outline" href="{{ url_for('applications.detail', application_id=duplicate.id) }}">{{ _('common.view') }}</a></td>
+      </tr></tbody>
+    </table>
+  </div>
+  {% if has_permission('can_override_duplicate') %}
+    <div class="divider"></div>
+    <div class="checkline" style="padding-top:0">
+      <input type="checkbox" name="override_duplicate" value="1" id="overrideBox" form="appForm">
+      <label for="overrideBox">{{ _('app.continue_anyway') }}</label>
+    </div>
+    <div class="field" style="margin-top:.4rem">
+      <label>{{ _('app.duplicate_reason') }} <span class="req">*</span></label>
+      <input type="text" name="duplicate_reason" form="appForm" value="{{ request.form.get('duplicate_reason', '') }}"
+             placeholder="Why is a new application needed?">
+      <span class="help">The reason is written into the audit log.</span>
+    </div>
+  {% else %}
+    <p class="small" style="margin-top:.5rem">Only an admin with the
+      &ldquo;Override Duplicate Warning&rdquo; permission can create a second application.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if errors %}
+<div class="alert alert-danger" style="display:block">
+  {% for e in errors %}<div>&bull; {{ e }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.customer') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('customer.code') }}</dt><dd class="mono">{{ customer.customer_code }}</dd>
+        <dt>{{ _('common.name') }}</dt><dd>{{ customer.first_name }} {{ customer.surname }}</dd>
+        <dt>{{ _('common.mobile') }}</dt><dd>{{ customer.mobile|mobile_fmt }}</dd>
+        <dt>{{ _('customer.village') }}</dt><dd>{{ customer.village }}, {{ customer.taluka }}</dd>
+        <dt>{{ _('customer.aadhaar_number') }}</dt><dd class="mono">{{ customer.aadhaar_number|mask_aadhaar or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.service') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('service.name') }}</dt><dd>{{ service.name }}</dd>
+        <dt>{{ _('service.category') }}</dt><dd>{{ service.category or '-' }}</dd>
+        <dt>{{ _('service.processing_days') }}</dt><dd>{{ service.processing_days or '-' }}</dd>
+        <dt>{{ _('service.required_docs') }}</dt><dd class="small">{{ service.required_documents or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ action_url }}" id="appForm" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="customer_id" value="{{ customer.id }}">
+  <input type="hidden" name="service_id" value="{{ service.id }}">
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.charge') }} / {{ _('app.govt_charge') }} / {{ _('app.csc_charge') }}</h3></div>
+    <div class="card-body">
+      <div class="form-grid cols-4" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        {{ m.money_field('charge', _('app.charge'), application.charge if application else service.default_charge, hint='PDF "Charge" column') }}
+        {{ m.money_field('govt_charge', _('app.govt_charge'), application.govt_charge if application else service.default_govt_charge, hint='Not CSC income') }}
+        {{ m.money_field('csc_charge', _('app.csc_charge'), application.csc_charge if application else service.default_csc_charge, hint='CSC income') }}
+        <div class="field">
+          <label for="totalField">{{ _('common.total') }}</label>
+          <input type="number" step="0.01" id="totalField" value="{{ '%.2f'|format((application.total if application else 0)|float) }}" readonly>
+          <span class="help">Charge + Govt + CSC (auto)</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="apply_date">{{ _('app.apply_date') }} <span class="req">*</span></label>
+          <input type="date" name="apply_date" id="apply_date" data-days-from required
+                 value="{{ application.apply_date|iso_date if application else today|iso_date }}">
+        </div>
+        <div class="field">
+          <label for="sub_service_id">{{ _('app.sub_service') }}</label>
+          <select name="sub_service_id" id="sub_service_id">
+            <option value="">--</option>
+            {% for sub in sub_services %}
+            <option value="{{ sub.id }}" {{ 'selected' if application and application.sub_service_id == sub.id }}>{{ sub.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ _('app.operator') }}</label>
+          <input type="text" value="{{ user.name }}" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.service_details') }} &mdash; {{ form_meta.label }}</h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {% block service_fields %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.notes') }}</h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="notes">{{ _('common.notes') }}</label>
+          <textarea name="notes" id="notes" rows="3">{{ application.notes if application else '' }}</textarea>
+        </div>
+        {% if editing and has_permission('can_update_status') %}
+        <div class="field">
+          <label for="status">{{ _('common.status') }}</label>
+          <select name="status" id="status">
+            {% for s in statuses %}
+            <option value="{{ s }}" {{ 'selected' if application.status == s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+    <a class="btn btn-outline" href="{{ url_for('applications.detail', application_id=application.id) if editing else url_for('applications.index') }}">{{ _('common.cancel') }}</a>
+  </div>
+</form>
+{% endblock %}

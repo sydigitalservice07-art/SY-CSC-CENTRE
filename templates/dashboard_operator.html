@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('dashboard.title') }}{% endblock %}
+{% block page_title %}{{ _('dashboard.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('dashboard.welcome') }}, {{ user.name }}</h1>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    {% if has_permission('can_add_application') %}
+    <a class="btn btn-primary" href="{{ url_for('applications.create') }}">{{ m.icon('plus') }} {{ _('app.add') }}</a>
+    {% endif %}
+    <a class="btn btn-outline" href="{{ url_for('customers.index') }}">{{ m.icon('users') }} {{ _('nav.customer') }}</a>
+  </div>
+</div>
+
+<div class="grid cols-4">
+  <div class="stat">
+    <div class="label">{{ _('dashboard.my_apps_today') }}</div>
+    <div class="value">{{ apps_today }}</div>
+    <div class="hint">{{ _('dashboard.pending_apps') }}: {{ pending_apps }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">{{ _('dashboard.completed_apps') }}</div>
+    <div class="value">{{ completed_apps }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">{{ _('dashboard.today_collected') }}</div>
+    <div class="value teal">{{ currency }} {{ today_income|money }}</div>
+  </div>
+  <div class="stat alt">
+    <div class="label">{{ _('dashboard.unread') }}</div>
+    <div class="value">{{ unread }}</div>
+    <div class="hint"><a href="{{ url_for('messages.index') }}">{{ _('msg.inbox') }}</a></div>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.recent_apps') }}</h3><span class="spacer"></span>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('applications.index') }}">{{ _('common.view') }}</a></div>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>{{ _('app.id') }}</th><th>{{ _('app.customer') }}</th>
+          <th>{{ _('common.status') }}</th><th class="num">{{ _('common.pending') }}</th></tr></thead>
+        <tbody>
+        {% for a in my_recent_apps %}
+          <tr>
+            <td class="mono"><a href="{{ url_for('applications.detail', application_id=a.id) }}">{{ a.app_code }}</a></td>
+            <td>{{ a.first_name }} {{ a.surname }}<div class="small muted">{{ a.service_name }}</div></td>
+            <td>{{ m.status_badge(a.status) }}</td>
+            <td class="num">{{ a.amount_pending|money }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">{{ _('common.no_records') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.recent_customers') }}</h3></div>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>{{ _('customer.code') }}</th><th>{{ _('common.name') }}</th>
+          <th>{{ _('common.mobile') }}</th></tr></thead>
+        <tbody>
+        {% for c in my_customers %}
+          <tr>
+            <td class="mono">{{ c.customer_code }}</td>
+            <td><a href="{{ url_for('customers.detail', customer_id=c.id) }}">{{ c.first_name }} {{ c.surname }}</a></td>
+            <td class="nowrap">{{ c.mobile|mobile_fmt }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3" class="empty">{{ _('common.no_records') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.attendance') }}</h3></div>
+    <div class="card-body">
+      {% if attendance_today %}
+        <p><strong>{{ attendance_today.att_date|date_fmt }}</strong> &mdash;
+          {{ _('operator.check_in') }}: {{ attendance_today.check_in|time_fmt or '-' }},
+          {{ _('operator.check_out') }}: {{ attendance_today.check_out|time_fmt or '-' }}</p>
+      {% else %}
+        <p class="muted">{{ _('common.no_records') }}</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('operators.attendance_self') }}" class="form-grid two">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('operator.check_in') }}</label>
+          <input type="time" name="check_in"></div>
+        <div class="field"><label>{{ _('operator.check_out') }}</label>
+          <input type="time" name="check_out"></div>
+        <div class="full"><button class="btn btn-primary btn-sm" type="submit">{{ _('common.save') }}</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('dashboard.leave_info') }}</h3></div>
+    <div class="card-body">
+      <table class="data compact">
+        <thead><tr><th>{{ _('common.from') }}</th><th>{{ _('common.to') }}</th>
+          <th>{{ _('common.reason') }}</th><th>{{ _('common.status') }}</th></tr></thead>
+        <tbody>
+        {% for l in my_leaves %}
+          <tr><td>{{ l.from_date|date_fmt }}</td><td>{{ l.to_date|date_fmt }}</td>
+            <td>{{ l.reason|truncate(30) }}</td>
+            <td><span class="badge {{ 'Completed' if l.status == 'Approved' else ('Rejected' if l.status == 'Rejected' else 'Pending') }}">{{ l.status }}</span></td></tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">{{ _('common.no_records') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div class="divider"></div>
+      <form method="post" action="{{ url_for('operators.leave_request') }}" class="form-grid two">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('common.from') }}</label><input type="date" name="from_date" required></div>
+        <div class="field"><label>{{ _('common.to') }}</label><input type="date" name="to_date"></div>
+        <div class="field full"><label>{{ _('common.reason') }}</label><input type="text" name="reason" required></div>
+        <div class="full"><button class="btn btn-primary btn-sm" type="submit">{{ _('operator.request_leave') }}</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

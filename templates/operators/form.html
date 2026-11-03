@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% set editing = mode == 'edit' %}
+{% block title %}{{ _('operator.edit') if editing else _('operator.add') }}{% endblock %}
+{% block page_title %}{{ _('operator.edit') if editing else _('operator.add') }}{% endblock %}
+{% block content %}
+<form method="post" data-loading
+      action="{{ url_for('operators.edit', operator_id=operator_id) if editing else url_for('operators.create') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="card-head"><h3>{{ _('operator.title') }}</h3></div>
+      <div class="card-body">
+        <div class="form-grid two">
+          <div class="field"><label>{{ _('common.name') }} <span class="req">*</span></label>
+            <input type="text" name="name" value="{{ operator.name or '' }}" required></div>
+          <div class="field"><label>{{ _('operator.username') }}</label>
+            <input type="text" value="{{ operator.username or 'set on create' }}" readonly></div>
+          <div class="field"><label>{{ _('common.mobile') }}</label>
+            <input type="text" name="mobile" value="{{ operator.mobile or '' }}"></div>
+          <div class="field"><label>{{ _('common.email') }}</label>
+            <input type="email" name="email" value="{{ operator.email or '' }}"></div>
+          <div class="field full"><label>{{ _('common.address') }}</label>
+            <input type="text" name="address" value="{{ operator.address or '' }}"></div>
+          <div class="field full">
+            <label>{{ _('profile.new_password') }} {% if editing %}<span class="help">(leave empty to keep the current password)</span>{% else %}<span class="req">*</span>{% endif %}</label>
+            <input type="password" name="password" autocomplete="new-password" {% if not editing %}required{% endif %}>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>{{ _('operator.permissions') }}</h3>
+        <span class="spacer"></span>
+        <div class="checkline" style="padding:0">
+          <input type="checkbox" id="selectAll"><label for="selectAll">{{ _('common.all') }}</label>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid two">
+          {% for field, label in permission_fields %}
+          <div class="checkline">
+            <input type="checkbox" name="{{ field }}" id="{{ field }}" value="1" data-perm
+                   {{ 'checked' if permissions and permissions[field] }}>
+            <label for="{{ field }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="notice" style="margin-top:.8rem">
+          Customer creation is admin-only by default. Operators can always use the
+          customers the admin has created.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button>
+    <a class="btn btn-outline" href="{{ url_for('operators.index') }}">{{ _('common.cancel') }}</a>
+  </div>
+</form>
+{% endblock %}

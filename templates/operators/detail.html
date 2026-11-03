@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ operator.name }}{% endblock %}
+{% block page_title %}{{ _('operator.title') }} &middot; {{ operator.name }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ operator.name }}</h1>
+  <span class="badge {{ operator.status }}">{{ operator.status|capitalize }}</span>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-outline" href="{{ url_for('operators.edit', operator_id=operator.id) }}">{{ _('common.edit') }}</a>
+    <a class="btn btn-outline" href="{{ url_for('operators.index') }}">{{ _('common.back') }}</a>
+  </div>
+</div>
+
+<div class="grid cols-4">
+  <div class="stat"><div class="label">{{ _('app.title') }}</div>
+    <div class="value">{{ stats.total_apps }}</div></div>
+  <div class="stat"><div class="label">{{ _('dashboard.completed_apps') }}</div>
+    <div class="value">{{ stats.completed }}</div></div>
+  <div class="stat"><div class="label">CSC {{ _('common.paid') }}</div>
+    <div class="value teal">{{ currency }} {{ stats.csc_collected|money }}</div></div>
+  <div class="stat alt"><div class="label">{{ _('operator.username') }}</div>
+    <div class="value" style="font-size:1.05rem">{{ operator.username }}</div>
+    <div class="hint">{{ operator.mobile|mobile_fmt or '-' }}</div></div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="tabs">
+    <button class="on" data-tab="tabAtt">{{ _('operator.attendance') }}</button>
+    <button data-tab="tabSal">{{ _('operator.salary') }}</button>
+    <button data-tab="tabLeave">{{ _('operator.leave') }}</button>
+    <button data-tab="tabAct">{{ _('operator.activity') }}</button>
+  </div>
+  <div class="card-body">
+
+    <div class="tab-pane on" id="tabAtt">
+      <form method="post" action="{{ url_for('operators.attendance', operator_id=operator.id) }}"
+            class="form-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('common.date') }}</label>
+          <input type="date" name="att_date" value="{{ today }}"></div>
+        <div class="field"><label>{{ _('operator.check_in') }}</label><input type="time" name="check_in"></div>
+        <div class="field"><label>{{ _('operator.check_out') }}</label><input type="time" name="check_out"></div>
+        <div class="field"><label>{{ _('common.notes') }}</label><input type="text" name="notes"></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button></div>
+      </form>
+      <div class="divider"></div>
+      <div class="table-wrap" style="max-height:340px;overflow:auto">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>{{ _('operator.check_in') }}</th>
+            <th>{{ _('operator.check_out') }}</th><th>{{ _('common.notes') }}</th></tr></thead>
+          <tbody>
+          {% for a in attendance %}
+            <tr><td>{{ a.att_date|date_fmt }}</td><td>{{ a.check_in|time_fmt or '-' }}</td>
+              <td>{{ a.check_out|time_fmt or '-' }}</td><td class="small">{{ a.notes or '' }}</td></tr>
+          {% else %}
+            <tr><td colspan="4" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabSal">
+      <form method="post" action="{{ url_for('operators.salary', operator_id=operator.id) }}"
+            class="form-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('operator.month') }}</label>
+          <input type="month" name="salary_month" required></div>
+        <div class="field"><label>{{ _('operator.salary_amount') }}</label>
+          <input type="number" step="0.01" min="0" name="salary_amount" required></div>
+        <div class="field"><label>{{ _('common.notes') }}</label><input type="text" name="notes"></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-primary" type="submit">{{ _('common.save') }}</button></div>
+      </form>
+      <div class="divider"></div>
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('operator.month') }}</th><th class="num">{{ _('operator.salary_amount') }}</th>
+            <th class="num">{{ _('operator.paid_amount') }}</th><th class="num">{{ _('operator.pending_amount') }}</th>
+            <th>{{ _('common.date') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for s in salaries %}
+            <tr>
+              <td class="mono">{{ s.salary_month }}</td>
+              <td class="num">{{ s.salary_amount|money }}</td>
+              <td class="num">{{ s.paid_amount|money }}</td>
+              <td class="num">{{ (s.salary_amount - s.paid_amount)|money }}</td>
+              <td>{{ s.payment_date|date_fmt or '-' }}</td>
+              <td class="right">
+                {% if s.salary_amount > s.paid_amount %}
+                <form method="post" action="{{ url_for('operators.salary_pay', salary_id=s.id) }}"
+                      class="toolbar" style="margin:0;gap:.3rem">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="number" step="0.01" min="0.01" name="amount" style="max-width:110px"
+                         value="{{ '%.2f'|format((s.salary_amount - s.paid_amount)|float) }}" required>
+                  <select name="payment_mode" style="max-width:90px">
+                    {% for mode in modes %}<option>{{ mode }}</option>{% endfor %}
+                  </select>
+                  <input type="date" name="paid_on" value="{{ today }}" style="max-width:140px">
+                  <button class="btn btn-sm btn-primary" type="submit">Pay</button>
+                </form>
+                {% else %}
+                <span class="badge Completed">Paid</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if salary_payments %}
+      <div class="divider"></div>
+      <p class="small muted">Salary payment history</p>
+      <div class="table-wrap" style="max-height:200px;overflow:auto">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>{{ _('operator.month') }}</th>
+            <th class="num">{{ _('common.amount') }}</th><th>{{ _('common.payment_mode') }}</th></tr></thead>
+          <tbody>
+          {% for sp in salary_payments %}
+            <tr><td>{{ sp.paid_on|date_fmt }}</td><td class="mono">{{ sp.salary_month }}</td>
+              <td class="num">{{ sp.amount|money }}</td><td>{{ sp.payment_mode }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="tab-pane" id="tabLeave">
+      <form method="post" action="{{ url_for('operators.leave_request') }}"
+            class="form-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="operator_id" value="{{ operator.id }}">
+        <div class="field"><label>{{ _('common.from') }}</label><input type="date" name="from_date" required></div>
+        <div class="field"><label>{{ _('common.to') }}</label><input type="date" name="to_date"></div>
+        <div class="field"><label>{{ _('common.reason') }}</label><input type="text" name="reason" required></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-primary" type="submit">{{ _('operator.request_leave') }}</button></div>
+      </form>
+      <div class="divider"></div>
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.from') }}</th><th>{{ _('common.to') }}</th>
+            <th>{{ _('common.reason') }}</th><th>{{ _('common.status') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for l in leaves %}
+            <tr>
+              <td>{{ l.from_date|date_fmt }}</td><td>{{ l.to_date|date_fmt }}</td>
+              <td class="small">{{ l.reason }}</td>
+              <td><span class="badge {{ 'Completed' if l.status == 'Approved' else ('Rejected' if l.status == 'Rejected' else 'Pending') }}">{{ l.status }}</span></td>
+              <td class="right nowrap">
+                {% if l.status == 'Pending' %}
+                <form method="post" action="{{ url_for('operators.leave_decision', leave_id=l.id, decision='approve') }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-primary" type="submit">{{ _('operator.approve') }}</button>
+                </form>
+                <form method="post" action="{{ url_for('operators.leave_decision', leave_id=l.id, decision='reject') }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-danger" type="submit">{{ _('operator.reject') }}</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabAct">
+      <div class="table-wrap" style="max-height:420px;overflow:auto">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>Action</th><th>{{ _('common.details') }}</th></tr></thead>
+          <tbody>
+          {% for a in activity %}
+            <tr><td class="nowrap">{{ a.created_at|datetime_fmt }}</td>
+              <td>{{ a.action }}</td><td class="small">{{ a.details }}</td></tr>
+          {% else %}
+            <tr><td colspan="3" class="empty">{{ _('common.no_records') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

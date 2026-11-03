@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ application.app_code }}{% endblock %}
+{% block page_title %}{{ _('app.title') }} &middot; {{ application.app_code }}{% endblock %}
+{% block content %}
+
+{% set field_labels = {
+  'token_no': _('app.token_no'), 'ack_no': _('app.ack_no'),
+  'epan_date': _('app.epan_date'), 'postal_tracking_no': _('app.postal_tracking'),
+  'physical_pan_date': _('app.physical_pan_date'),
+  'ration_card_no': _('app.ration_card_no'), 'ap_number': _('app.ap_number'),
+  'pay_number': _('app.pay_number'), 'done_date': _('app.done_date'),
+  'document_name': _('app.document_name')} %}
+
+<div class="page-head">
+  <h1 class="mono">{{ application.app_code }}</h1>
+  {{ m.status_badge(application.status) }}
+  {% if application.is_archived %}<span class="badge archived">{{ _('customer.archived') }}</span>{% endif %}
+  {% if application.is_deleted %}<span class="badge danger">Deleted</span>{% endif %}
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-outline" href="{{ url_for('customers.detail', customer_id=application.customer_id) }}">{{ _('nav.customer') }}</a>
+    <a class="btn btn-outline" href="{{ url_for('applications.edit', application_id=application.id) }}">{{ _('common.edit') }}</a>
+    <button class="btn btn-navy" type="button" data-print>{{ m.icon('print') }} {{ _('common.print') }}</button>
+  </div>
+</div>
+
+<div class="grid cols-4">
+  <div class="stat"><div class="label">{{ _('app.charge') }}</div>
+    <div class="value">{{ currency }} {{ application.charge|money }}</div></div>
+  <div class="stat"><div class="label">{{ _('app.govt_charge') }}</div>
+    <div class="value">{{ currency }} {{ application.govt_charge|money }}</div>
+    <div class="hint">Government &mdash; not CSC income</div></div>
+  <div class="stat"><div class="label">{{ _('app.csc_charge') }}</div>
+    <div class="value teal">{{ currency }} {{ application.csc_charge|money }}</div></div>
+  <div class="stat alt"><div class="label">{{ _('common.total') }}</div>
+    <div class="value">{{ currency }} {{ application.total|money }}</div>
+    <div class="hint">{{ _('common.paid') }} {{ application.amount_paid|money }} &middot;
+      {{ _('common.pending') }} {{ application.amount_pending|money }}</div></div>
+</div>
+
+<div class="grid cols-2" style="margin-top:1rem">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.service_details') }}</h3>
+      <span class="spacer"></span><span class="badge info">{{ form_key }}</span></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('app.service') }}</dt><dd>{{ application.service_name }}</dd>
+        <dt>{{ _('app.sub_service') }}</dt><dd>{{ application.sub_service_name or '-' }}</dd>
+        <dt>{{ _('app.apply_date') }}</dt><dd>{{ application.apply_date|date_fmt }}</dd>
+        {% for field in form_meta.fields %}
+          {% set value = details.get(field) if details else None %}
+          <dt>{{ field_labels.get(field, field) }}</dt>
+          <dd>{% if field.endswith('_date') %}{{ value|date_fmt or '-' }}{% else %}{{ value or '-' }}{% endif %}</dd>
+        {% endfor %}
+        <dt>{{ _('app.total_days') }}</dt><dd><strong>{{ details.get('total_days') or '-' }}</strong></dd>
+      </dl>
+      {% if application.required_documents %}
+      <div class="notice" style="margin-top:.6rem">Required documents:
+        {{ application.required_documents }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.customer') }}</h3></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ _('customer.code') }}</dt><dd class="mono">{{ application.customer_code }}</dd>
+        <dt>{{ _('common.name') }}</dt><dd>{{ application.first_name }} {{ application.surname }}</dd>
+        <dt>{{ _('common.mobile') }}</dt><dd>{{ application.mobile|mobile_fmt }}</dd>
+        <dt>{{ _('customer.village') }}</dt><dd>{{ application.village }}, {{ application.taluka }}</dd>
+        <dt>{{ _('customer.district') }}</dt><dd>{{ application.district }}</dd>
+        <dt>{{ _('app.operator') }}</dt><dd>{{ application.operator_name or '-' }}</dd>
+        <dt>{{ _('common.created') }}</dt><dd>{{ application.created_at|datetime_fmt }}</dd>
+        <dt>{{ _('app.notes') }}</dt><dd>{{ application.notes or '-' }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>{{ _('app.payments') }}</h3>
+    <span class="spacer"></span>
+    <span class="small muted">{{ _('common.pending') }}:
+      <strong>{{ currency }} {{ application.amount_pending|money }}</strong></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data compact">
+      <thead><tr><th>{{ _('payment.pay_id') }}</th><th>{{ _('common.date') }}</th>
+        <th class="num">{{ _('common.amount') }}</th><th class="num">CSC</th>
+        <th class="num">Govt</th><th>{{ _('common.payment_mode') }}</th>
+        <th>{{ _('common.reference') }}</th><th>{{ _('common.by') }}</th>
+        <th>{{ _('common.status') }}</th><th></th></tr></thead>
+      <tbody>
+      {% for p in payments %}
+        <tr>
+          <td class="mono">{{ p.payment_code }}{% if p.is_refund %} <span class="badge danger">{{ _('payment.refund') }}</span>{% endif %}</td>
+          <td class="nowrap">{{ p.payment_date|datetime_fmt }}</td>
+          <td class="num">{{ p.amount|money }}</td>
+          <td class="num">{{ p.csc_amount|money }}</td>
+          <td class="num">{{ p.govt_amount|money }}</td>
+          <td>{{ p.payment_mode }}</td>
+          <td class="small">{{ p.reference_no or '-' }}</td>
+          <td class="small">{{ p.created_by_name or '-' }}</td>
+          <td><span class="badge {{ 'Completed' if p.status == 'active' else 'Rejected' }}">{{ p.status }}</span></td>
+          <td class="right nowrap">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('payments.receipt', payment_id=p.id) }}">{{ _('payment.receipt') }}</a>
+            {% if user.role == 'admin' and p.status == 'active' and not p.is_refund %}
+            <form method="post" action="{{ url_for('payments.reverse', payment_id=p.id) }}"
+                  style="display:inline" data-confirm="Reverse this payment?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="reason" value="Reversed from application page">
+              <button class="btn btn-sm btn-danger" type="submit">{{ _('payment.refund') }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not application.is_archived and not application.is_deleted and application.status != 'Cancelled' and application.amount_pending > 0 %}
+  <div class="card-body" style="border-top:1px solid var(--border)">
+    <form method="post" action="{{ url_for('payments.create', application_id=application.id) }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <div class="field"><label>{{ _('payment.amount_received') }} <span class="req">*</span></label>
+          <input type="number" step="0.01" min="0.01" max="{{ application.amount_pending }}"
+                 name="amount" value="{{ '%.2f'|format(application.amount_pending|float) }}" required></div>
+        <div class="field"><label>{{ _('common.payment_mode') }}</label>
+          <select name="payment_mode">
+            <option>Cash</option><option>Bank</option><option>UPI</option>
+          </select></div>
+        <div class="field"><label>{{ _('common.date') }}</label>
+          <input type="date" name="payment_date" value="{{ today|iso_date }}"></div>
+        <div class="field"><label>{{ _('common.reference') }}</label>
+          <input type="text" name="reference_no" placeholder="{{ _('payment.reference_placeholder') }}"></div>
+        <div class="field"><label>{{ _('common.notes') }}</label>
+          <input type="text" name="notes"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{{ m.icon('money') }} {{ _('payment.record') }}</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <div class="card-head"><h3>{{ _('app.status_history') }}</h3></div>
+    <div class="card-body tight">
+      {% for h in history %}
+        <div style="padding:.4rem .2rem;border-bottom:1px solid var(--border)">
+          <strong class="small">{{ h.action }}</strong>
+          <div class="small">{{ h.details }}</div>
+          <div class="small muted">{{ h.username or '-' }} &middot; {{ h.created_at|datetime_fmt }}</div>
+        </div>
+      {% else %}
+        <div class="empty">{{ _('common.no_records') }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>{{ _('common.actions') }}</h3></div>
+    <div class="card-body">
+      {% if has_permission('can_update_status') %}
+      <form method="post" action="{{ url_for('applications.update_status', application_id=application.id) }}" style="margin-bottom:.8rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid two">
+          <div class="field"><label>{{ _('common.status') }}</label>
+            <select name="status">
+              {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if application.status == s }}>{{ s }}</option>{% endfor %}
+            </select></div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn btn-navy" type="submit">{{ _('common.save') }}</button></div>
+        </div>
+      </form>
+      {% endif %}
+
+      {% if not application.is_archived %}
+      <form method="post" action="{{ url_for('applications.archive', application_id=application.id) }}"
+            class="form-grid two" data-confirm="Archive this application?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('common.reason') }}</label>
+          <input type="text" name="reason" placeholder="Old / closed case"></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-warn" type="submit">{{ _('app.archive') }}</button></div>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('applications.restore', application_id=application.id) }}"
+            data-confirm="Restore this application from the archive?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary" type="submit">{{ _('app.restore') }}</button>
+      </form>
+      {% if archive_row %}
+      <p class="small muted" style="margin-top:.5rem">
+        {{ _('app.archive_date') }}: {{ archive_row.archived_at|datetime_fmt }} &middot;
+        {{ _('app.archived_by') }}: {{ archive_row.archived_by_name or '-' }} &middot;
+        {{ archive_row.reason or '' }}</p>
+      {% endif %}
+      {% endif %}
+
+      <div class="divider"></div>
+
+      {% if has_permission('can_update_status') %}
+      <form method="post" action="{{ url_for('applications.cancel', application_id=application.id) }}"
+            class="form-grid two" data-confirm="Cancel this application?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('app.delete_reason') }} <span class="req">*</span></label>
+          <input type="text" name="reason" required></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-outline" type="submit">{{ _('app.cancel_app') }}</button></div>
+      </form>
+      {% endif %}
+
+      {% if user.role == 'admin' %}
+      <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}"
+            class="form-grid two" style="margin-top:.6rem"
+            data-confirm="Soft delete this application? Payments and ledger rows block deletion.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label>{{ _('common.reason') }} <span class="req">*</span></label>
+          <input type="text" name="reason" required></div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn btn-danger" type="submit">{{ _('common.delete') }}</button></div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

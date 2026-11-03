@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ _('report.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head no-print">
+  <h1>{{ _('report.title') }}</h1>
+  <span class="spacer"></span>
+  <div class="btn-row">
+    <a class="btn btn-outline"
+       href="{{ url_for('reports.export', type=report_key, period=period, **{'from': date_from, 'to': date_to}) }}">{{ m.icon('download') }} {{ _('common.export_csv') }}</a>
+    <button class="btn btn-navy" type="button" data-print>{{ m.icon('print') }} {{ _('common.print') }}</button>
+  </div>
+</div>
+
+<div class="card no-print">
+  <div class="card-body" style="padding-bottom:.6rem">
+    <form method="get" action="{{ url_for('reports.index') }}" class="toolbar">
+      <div class="field grow"><label>{{ _('report.type') }}</label>
+        <select name="type">
+          {% for key, label in report_list %}
+          <option value="{{ key }}" {{ 'selected' if report_key == key }}>{{ loop.index }}. {{ label }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label>{{ _('report.date_range') }}</label>
+        <select name="period">
+          <option value="today" {{ 'selected' if period == 'today' }}>{{ _('report.daily') }}</option>
+          <option value="week" {{ 'selected' if period == 'week' }}>{{ _('report.weekly') }}</option>
+          <option value="month" {{ 'selected' if period == 'month' }}>{{ _('report.monthly') }}</option>
+          <option value="year" {{ 'selected' if period == 'year' }}>{{ _('report.yearly') }}</option>
+          <option value="custom" {{ 'selected' if period == 'custom' }}>{{ _('report.custom') }}</option>
+        </select></div>
+      <div class="field"><label>{{ _('common.from') }}</label>
+        <input type="date" name="from" value="{{ date_from or start|iso_date }}"></div>
+      <div class="field"><label>{{ _('common.to') }}</label>
+        <input type="date" name="to" value="{{ date_to or end|iso_date }}"></div>
+      <button class="btn btn-primary" type="submit">{{ m.icon('chart') }} {{ _('report.generate') }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h2>{{ title }}</h2>
+      <div class="small muted">{{ start|date_fmt }} &rarr; {{ end|date_fmt }}
+        &middot; {{ data.rows|length }} {{ _('report.rows') }}</div>
+    </div>
+    <span class="spacer"></span>
+    <span class="badge info">{{ app_name }}</span>
+  </div>
+  {% if data.note %}
+  <div class="card-body" style="padding-bottom:0">
+    <div class="notice">{{ data.note }}</div>
+  </div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="data compact">
+      <thead><tr>
+        {% for col in data.columns %}
+        <th class="{{ 'num' if col[2] in ('money', 'int') }}">{{ col[1] }}</th>
+        {% endfor %}
+      </tr></thead>
+      <tbody>
+      {% for row in data.rows %}
+        <tr>
+          {% for col in data.columns %}
+            {% set value = row.get(col[0]) %}
+            <td class="{{ 'num' if col[2] in ('money', 'int') }}">
+              {%- if col[2] == 'money' -%}{{ value|money }}
+              {%- elif col[2] == 'date' -%}{{ value|date_fmt }}
+              {%- elif col[2] == 'int' -%}{{ value if value is not none else 0 }}
+              {%- else -%}{{ value if value is not none else '' }}{%- endif -%}
+            </td>
+          {% endfor %}
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ data.columns|length }}" class="empty">{{ _('common.no_records') }}</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if data.totals %}
+      <tfoot>
+        <tr>
+          <td colspan="{{ data.columns|length }}">
+            <strong>{{ _('report.summary') }}:</strong>
+            {% for label, value in data.totals %}
+              &nbsp;<span class="badge info">{{ label }}:
+              {% if value.__class__.__name__ == 'Decimal' %}{{ value|money }}{% else %}{{ value }}{% endif %}</span>
+            {% endfor %}
+          </td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

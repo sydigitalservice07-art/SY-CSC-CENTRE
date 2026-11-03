@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ _('msg.title') }}{% endblock %}
+{% block page_title %}{{ _('msg.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ _('msg.title') }}</h1>
+  <span class="badge unread">{{ _('msg.unread') }}: {{ unread }}</span>
+  <span class="spacer"></span>
+  {% if can_reply %}
+  <a class="btn btn-primary" href="{{ url_for('messages.compose') }}">{{ m.icon('plus') }} {{ _('msg.compose') }}</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="tabs">
+    <button class="on" data-tab="tabInbox">{{ _('msg.inbox') }} ({{ inbox|length }})</button>
+    <button data-tab="tabSent">{{ _('msg.sent') }} ({{ sent|length }})</button>
+  </div>
+  <div class="card-body">
+    <div class="tab-pane on" id="tabInbox">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>{{ _('common.by') }}</th>
+            <th>{{ _('msg.subject') }}</th><th>{{ _('common.status') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for msg in inbox %}
+            <tr>
+              <td class="nowrap">{{ msg.created_at|datetime_fmt }}</td>
+              <td>{{ msg.sender_name }} <span class="small muted">({{ msg.sender_role }})</span></td>
+              <td>{% if not msg.read_at %}<strong>{{ msg.subject }}</strong>{% else %}{{ msg.subject }}{% endif %}</td>
+              <td>{% if msg.read_at %}<span class="badge Completed">{{ _('msg.read') }}</span>
+                  {% else %}<span class="badge unread">{{ _('msg.unread') }}</span>{% endif %}</td>
+              <td class="right"><a class="btn btn-sm btn-outline"
+                href="{{ url_for('messages.view', message_id=msg.id) }}">{{ _('common.view') }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="empty">{{ _('msg.no_messages') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabSent">
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>{{ _('common.date') }}</th><th>{{ _('msg.to') }}</th>
+            <th>{{ _('msg.subject') }}</th><th>{{ _('common.status') }}</th><th></th></tr></thead>
+          <tbody>
+          {% for msg in sent %}
+            <tr>
+              <td class="nowrap">{{ msg.created_at|datetime_fmt }}</td>
+              <td>{{ msg.recipient_name }}{% if msg.is_broadcast %}
+                <span class="badge info">{{ _('msg.all_operators') }}</span>{% endif %}</td>
+              <td>{{ msg.subject }}</td>
+              <td>{% if msg.read_at %}<span class="badge Completed">{{ _('msg.read') }}</span>
+                  {% else %}<span class="badge Pending">{{ _('msg.unread') }}</span>{% endif %}</td>
+              <td class="right"><a class="btn btn-sm btn-outline"
+                href="{{ url_for('messages.view', message_id=msg.id) }}">{{ _('common.view') }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="empty">{{ _('msg.no_messages') }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

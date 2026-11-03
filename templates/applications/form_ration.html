@@ -1,0 +1,30 @@
+{% extends "applications/_form_base.html" %}
+{% import "_macros.html" as m with context %}
+{% block service_fields %}
+  <div class="field">
+    <label for="ration_card_no">{{ _('app.ration_card_no') }}</label>
+    <input type="text" name="ration_card_no" id="ration_card_no" value="{{ details.ration_card_no or '' }}">
+  </div>
+  <div class="field">
+    <label for="ap_number">{{ _('app.ap_number') }}</label>
+    <input type="text" name="ap_number" id="ap_number" value="{{ details.ap_number or '' }}">
+  </div>
+  <div class="field">
+    <label for="pay_number">{{ _('app.pay_number') }}</label>
+    <input type="text" name="pay_number" id="pay_number" value="{{ details.pay_number or '' }}">
+  </div>
+  <div class="field">
+    <label for="done_date">{{ _('app.done_date') }}</label>
+    <input type="date" name="done_date" id="done_date" data-days-to value="{{ details.done_date|iso_date }}">
+  </div>
+  <div class="field">
+    <label for="totalDays">{{ _('app.total_days') }}</label>
+    <input type="text" id="totalDays" data-days-output readonly value="{{ details.total_days or '' }}">
+    <span class="help">Apply date &rarr; Done date (inclusive)</span>
+  </div>
+  <div class="field full">
+    <label for="document_name">{{ _('app.document_name') }}</label>
+    <input type="text" name="document_name" id="document_name" value="{{ details.document_name or '' }}"
+           placeholder="Aadhaar Card, Old Ration Card, Address Proof">
+  </div>
+{% endblock %}

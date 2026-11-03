@@ -1,0 +1,37 @@
+{% extends "applications/_form_base.html" %}
+{% import "_macros.html" as m with context %}
+{% block service_fields %}
+  <div class="field">
+    <label for="token_no">{{ _('app.token_no') }}</label>
+    <input type="text" name="token_no" id="token_no" value="{{ details.token_no or '' }}">
+  </div>
+  <div class="field">
+    <label for="ack_no">{{ _('app.ack_no') }}</label>
+    <input type="text" name="ack_no" id="ack_no" value="{{ details.ack_no or '' }}">
+  </div>
+  <div class="field">
+    <label for="epan_date">{{ _('app.epan_date') }}</label>
+    <input type="date" name="epan_date" id="epan_date" value="{{ details.epan_date|iso_date }}">
+  </div>
+  <div class="field">
+    <label for="postal_tracking_no">{{ _('app.postal_tracking') }}</label>
+    <input type="text" name="postal_tracking_no" id="postal_tracking_no"
+           value="{{ details.postal_tracking_no or '' }}">
+  </div>
+  <div class="field">
+    <label for="physical_pan_date">{{ _('app.physical_pan_date') }}</label>
+    <input type="date" name="physical_pan_date" id="physical_pan_date" data-days-to
+           value="{{ details.physical_pan_date|iso_date }}">
+  </div>
+  <div class="field">
+    <label for="totalDays">{{ _('app.total_days') }}</label>
+    <input type="text" id="totalDays" data-days-output readonly value="{{ details.total_days or '' }}">
+    <span class="help">Apply date &rarr; Physical PAN date (inclusive)</span>
+  </div>
+  <div class="field full">
+    <label for="document_name">{{ _('app.document_name') }}</label>
+    <input type="text" name="document_name" id="document_name"
+           value="{{ details.document_name or '' }}" placeholder="Aadhaar Card, Photo, Signature">
+    <span class="help">Recorded by name only for this service, as specified in the PDF.</span>
+  </div>
+{% endblock %}

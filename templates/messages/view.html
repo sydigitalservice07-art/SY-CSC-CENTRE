@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ message.subject }}{% endblock %}
+{% block page_title %}{{ _('msg.title') }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:820px">
+  <div class="card-head">
+    <div>
+      <h2>{{ message.subject }}</h2>
+      <div class="small muted">
+        {{ message.sender_name }} &rarr; {{ message.recipient_name }} &middot;
+        {{ message.created_at|datetime_fmt }}
+        {% if message.read_at %}&middot; {{ _('msg.read') }} {{ message.read_at|datetime_fmt }}{% endif %}
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <a class="btn btn-sm btn-outline" href="{{ url_for('messages.index') }}">{{ _('common.back') }}</a>
+  </div>
+  <div class="card-body">
+    {% for msg in thread %}
+    <div style="border:1px solid var(--border);border-radius:12px;padding:.8rem;margin-bottom:.8rem;
+                background:{{ '#f7fbff' if msg.sender_id == user.id else '#fff' }}">
+      <div class="small muted" style="margin-bottom:.4rem">
+        <strong>{{ msg.sender_name }}</strong> &middot; {{ msg.created_at|datetime_fmt }}
+      </div>
+      <div style="white-space:pre-wrap">{{ msg.body }}</div>
+    </div>
+    {% endfor %}
+
+    {% if can_reply %}
+    <div class="divider"></div>
+    <form method="post" action="{{ url_for('messages.reply', message_id=message.id) }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label>{{ _('msg.reply') }}</label>
+        <textarea name="body" rows="4" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{{ _('msg.send') }}</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
